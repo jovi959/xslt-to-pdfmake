@@ -1,0 +1,21 @@
+{
+  "name": "xslt-to-pdfmake",
+  "version": "0.1.0",
+  "description": "XSL-FO to PDFMake converter with TDD approach",
+  "main": "src/xslt-to-pdfmake.js",
+  "scripts": {
+    "test": "node test/test-cli.js",
+    "test:watch": "nodemon --watch 'src/*.js' --watch 'test/**/*.js' --watch 'test/data/*.xslt' --exec 'node test/test-cli.js'",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "xsl-fo",
+    "pdfmake",
+    "pdf",
+    "converter",
+    "tdd"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

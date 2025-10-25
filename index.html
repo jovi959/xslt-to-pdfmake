@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSL-FO to PDFMake Converter</title>
+    <script src="lib/pdfmake.min.js"></script>
+    <script src="lib/vfs_fonts.js"></script>
+    <script src="src/xslt-to-pdfmake.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .nav {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #495057;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .feature-card p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .demo-section {
+            margin-top: 30px;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+
+        .highlight {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .info-box h3 {
+            color: #004085;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #004085;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 XSL-FO to PDFMake Converter</h1>
+            <p>Parse XSL Formatting Objects and convert them to PDFMake document definitions</p>
+        </div>
+
+        <div class="nav">
+            <a href="index.html" class="nav-link">🏠 Home</a>
+            <a href="test.html" class="nav-link">🧪 Run Tests</a>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>📖 About This Project</h2>
+                <p>
+                    This project provides a JavaScript-based converter that parses XSL-FO (XSL Formatting Objects) 
+                    documents and converts them to PDFMake document definitions. Built using Test-Driven Development 
+                    (TDD) principles with vanilla JavaScript - no external testing frameworks required.
+                </p>
+                <p>
+                    <strong>Current Implementation:</strong> Extracting top-level PDFMake parameters (pageSize and pageMargins) 
+                    from XSL-FO page master definitions.
+                </p>
+            </div>
+
+            <div class="section">
+                <h2>✨ Features</h2>
+                <div class="features">
+                    <div class="feature-card">
+                        <h3>📏 Page Size Detection</h3>
+                        <p>Automatically detects standard page sizes (LETTER, A4, LEGAL, etc.) or creates custom dimensions from XSL-FO page-width and page-height attributes.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>📐 Margin Parsing</h3>
+                        <p>Parses margin attributes from XSL-FO and converts them to PDFMake's [left, top, right, bottom] format with proper unit conversion.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🔄 Unit Conversion</h3>
+                        <p>Converts between various units (inches, centimeters, millimeters, points) to PDFMake's point-based system (72 points per inch).</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>📄 Multiple Page Masters</h3>
+                        <p>Supports documents with multiple page master definitions, allowing different pages to have different margins.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🧪 Test-Driven Development</h3>
+                        <p>Built with TDD principles using vanilla JavaScript unit tests - no external frameworks needed.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🎨 Visual Test Runner</h3>
+                        <p>Beautiful HTML interface to run tests and visualize extracted data structures in real-time.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🚀 Quick Start</h2>
+                <div class="info-box">
+                    <h3>Running the Tests</h3>
+                    <ul>
+                        <li>Click the "Run Tests" link in the navigation above</li>
+                        <li>Click the "▶️ Run Tests" button to execute all unit tests</li>
+                        <li>View extracted data structures and conversion results</li>
+                        <li>All tests run in the browser - no Node.js or external dependencies required</li>
+                    </ul>
+                </div>
+
+                <div class="button-group">
+                    <a href="test.html" class="btn">🧪 Run Unit Tests</a>
+                    <button onclick="showConverterDemo()" class="btn btn-success">▶️ Try Converter Demo</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>💻 Code Example</h2>
+                <p>Here's how to use the XSL-FO to PDFMake converter in your code:</p>
+                
+                <div class="code-block">
+<span class="highlight">// Create converter instance</span>
+const converter = new XSLToPDFMakeConverter();
+
+<span class="highlight">// Load your XSL-FO document</span>
+const xslfoXml = `<?xml version="1.0" encoding="UTF-8"?>
+&lt;fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format"&gt;
+  &lt;fo:layout-master-set&gt;
+    &lt;fo:simple-page-master master-name="MyPage"
+        page-width="8.5in" page-height="11in"
+        margin="1in"&gt;
+      &lt;fo:region-body/&gt;
+    &lt;/fo:simple-page-master&gt;
+  &lt;/fo:layout-master-set&gt;
+&lt;/fo:root&gt;`;
+
+<span class="highlight">// Convert to PDFMake definition</span>
+const pdfMakeDefinition = converter.convertToPDFMake(xslfoXml);
+
+<span class="highlight">// Result:</span>
+{
+  pageSize: 'LETTER',        // Detected as standard US Letter
+  pageMargins: [72, 72, 72, 72],  // 1in = 72pt on all sides
+  content: [],
+  _metadata: { ... }
+}
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🎯 Test Coverage</h2>
+                <p>Current test suite includes 10 comprehensive unit tests covering:</p>
+                <div class="features">
+                    <div class="feature-card">
+                        <h3>✓ Document Parsing</h3>
+                        <p>Tests for successful XSL-FO XML parsing and error handling</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>✓ Page Size Extraction</h3>
+                        <p>Validates correct page size detection and standard size matching</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>✓ Margin Conversion</h3>
+                        <p>Tests proper margin parsing and conversion to PDFMake format</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>✓ Unit Conversions</h3>
+                        <p>Validates conversion between inches, cm, mm, and points</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>✓ Metadata Storage</h3>
+                        <p>Ensures proper storage of page master information</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>✓ Helper Functions</h3>
+                        <p>Tests utility functions like getMargins()</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section demo-section" id="demoSection" style="display: none;">
+                <h2>🎨 Live Demo</h2>
+                <p>Convert an XSL-FO document to PDFMake format and generate a PDF:</p>
+                
+                <div class="button-group">
+                    <button onclick="demoEmptyPage()" class="btn">📄 Empty Page Example</button>
+                    <button onclick="demoSimplePage()" class="btn">📝 Simple Document</button>
+                    <button onclick="demoTablePage()" class="btn">📊 Table Example</button>
+                </div>
+
+                <div id="demoOutput" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configure PDFMake
+        pdfMake.fonts = {
+            Roboto: {
+                normal: 'Roboto-Regular.ttf',
+                bold: 'Roboto-Medium.ttf',
+                italics: 'Roboto-Italic.ttf',
+                bolditalics: 'Roboto-MediumItalic.ttf'
+            }
+        };
+
+        // Show converter demo section
+        function showConverterDemo() {
+            const demoSection = document.getElementById('demoSection');
+            demoSection.style.display = 'block';
+            demoSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Demo: Empty Page
+        async function demoEmptyPage() {
+            try {
+                const response = await fetch('test/data/empty_page.xslt');
+                const xslfoXml = await response.text();
+                
+                const converter = new XSLToPDFMakeConverter();
+                const pdfDef = converter.convertToPDFMake(xslfoXml);
+
+                // Add some content for visualization
+                pdfDef.content = [
+                    { text: 'Empty Page Example', fontSize: 24, bold: true, margin: [0, 0, 0, 20] },
+                    { text: 'This PDF was generated from an XSL-FO document.', margin: [0, 0, 0, 10] },
+                    { 
+                        text: [
+                            'Page Size: ',
+                            { text: JSON.stringify(pdfDef.pageSize), bold: true, color: '#667eea' }
+                        ],
+                        margin: [0, 0, 0, 5]
+                    },
+                    { 
+                        text: [
+                            'Page Margins: ',
+                            { text: `[${pdfDef.pageMargins.join(', ')}] points`, bold: true, color: '#667eea' }
+                        ],
+                        margin: [0, 0, 0, 20]
+                    },
+                    { text: 'The margins and page size were automatically extracted from the XSL-FO page master definition.', italics: true }
+                ];
+
+                // Generate PDF
+                pdfMake.createPdf(pdfDef).open();
+
+                showOutput('✅ PDF generated successfully!', pdfDef);
+            } catch (error) {
+                showOutput('❌ Error: ' + error.message, null, true);
+            }
+        }
+
+        // Demo: Simple Page
+        async function demoSimplePage() {
+            try {
+                const response = await fetch('test/data/simple.xslt');
+                const xslfoXml = await response.text();
+                
+                const converter = new XSLToPDFMakeConverter();
+                const pdfDef = converter.convertToPDFMake(xslfoXml);
+
+                // Add content
+                pdfDef.content = [
+                    { text: 'Simple Document Example', fontSize: 24, bold: true, margin: [0, 0, 0, 20] },
+                    { text: 'This demonstrates converting a complex XSL-FO document with multiple page masters.', margin: [0, 0, 0, 10] },
+                    { 
+                        text: 'Extracted Information:',
+                        fontSize: 16,
+                        bold: true,
+                        margin: [0, 20, 0, 10]
+                    },
+                    { 
+                        text: `• Page Size: ${JSON.stringify(pdfDef.pageSize)}`,
+                        margin: [0, 0, 0, 5]
+                    },
+                    { 
+                        text: `• Page Margins: [${pdfDef.pageMargins.join(', ')}] points`,
+                        margin: [0, 0, 0, 5]
+                    },
+                    { 
+                        text: `• Number of Page Masters: ${pdfDef._metadata.pageMasters.length}`,
+                        margin: [0, 0, 0, 20]
+                    },
+                    { text: 'Note: Full content conversion is in development. Currently showing top-level parameters only.', italics: true, color: '#666' }
+                ];
+
+                pdfMake.createPdf(pdfDef).open();
+                showOutput('✅ PDF generated successfully!', pdfDef);
+            } catch (error) {
+                showOutput('❌ Error: ' + error.message, null, true);
+            }
+        }
+
+        // Demo: Table Page
+        async function demoTablePage() {
+            try {
+                const response = await fetch('test/data/table.xslt');
+                const xslfoXml = await response.text();
+                
+                const converter = new XSLToPDFMakeConverter();
+                const pdfDef = converter.convertToPDFMake(xslfoXml);
+
+                // Add content with a table
+                pdfDef.content = [
+                    { text: 'Table Document Example', fontSize: 24, bold: true, margin: [0, 0, 0, 20] },
+                    { 
+                        text: 'Extracted Page Configuration:',
+                        fontSize: 16,
+                        bold: true,
+                        margin: [0, 0, 0, 10]
+                    },
+                    {
+                        table: {
+                            widths: ['*', '*'],
+                            body: [
+                                [
+                                    { text: 'Property', bold: true, fillColor: '#667eea', color: 'white' },
+                                    { text: 'Value', bold: true, fillColor: '#667eea', color: 'white' }
+                                ],
+                                ['Page Size', JSON.stringify(pdfDef.pageSize)],
+                                ['Page Margins', `[${pdfDef.pageMargins.join(', ')}] points`],
+                                ['Primary Master', pdfDef._metadata.primaryMaster],
+                                ['Total Page Masters', pdfDef._metadata.pageMasters.length.toString()]
+                            ]
+                        },
+                        margin: [0, 0, 0, 20]
+                    },
+                    { text: 'The converter successfully extracted page layout information from the XSL-FO document.', italics: true }
+                ];
+
+                pdfMake.createPdf(pdfDef).open();
+                showOutput('✅ PDF generated successfully!', pdfDef);
+            } catch (error) {
+                showOutput('❌ Error: ' + error.message, null, true);
+            }
+        }
+
+        // Show output
+        function showOutput(message, data, isError = false) {
+            const output = document.getElementById('demoOutput');
+            const color = isError ? '#dc3545' : '#28a745';
+            
+            let html = `<div style="padding: 20px; background: ${isError ? '#f8d7da' : '#d4edda'}; border-radius: 6px; border-left: 4px solid ${color};">
+                <strong style="color: ${color};">${message}</strong>`;
+            
+            if (data) {
+                html += `<pre style="margin-top: 15px; padding: 15px; background: white; border-radius: 4px; overflow-x: auto; font-size: 12px;">${JSON.stringify({
+                    pageSize: data.pageSize,
+                    pageMargins: data.pageMargins,
+                    metadata: data._metadata
+                }, null, 2)}</pre>`;
+            }
+            
+            html += '</div>';
+            output.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
+

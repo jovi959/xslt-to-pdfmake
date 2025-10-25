@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSL-FO to PDFMake Converter - Unit Tests</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .test-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .test-summary.all-pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .test-summary.has-failures {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .test-summary h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-box.pass {
+            border-top: 4px solid #28a745;
+        }
+
+        .stat-box.fail {
+            border-top: 4px solid #dc3545;
+        }
+
+        .stat-box.total {
+            border-top: 4px solid #667eea;
+        }
+
+        .stat-box.percentage {
+            border-top: 4px solid #ffc107;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-box.pass .stat-number {
+            color: #28a745;
+        }
+
+        .stat-box.fail .stat-number {
+            color: #dc3545;
+        }
+
+        .stat-box.total .stat-number {
+            color: #667eea;
+        }
+
+        .stat-box.percentage .stat-number {
+            color: #ffc107;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .test-results {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .test-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 5px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+            margin-bottom: 15px;
+        }
+
+        .test-item:hover {
+            transform: translateX(5px);
+        }
+
+        .test-item.test-pass {
+            border-left-color: #28a745;
+            background: #f1f9f3;
+        }
+
+        .test-item.test-fail {
+            border-left-color: #dc3545;
+            background: #fef5f5;
+        }
+
+        .test-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .test-icon {
+            font-size: 24px;
+        }
+
+        .test-name {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .test-duration {
+            font-size: 12px;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .test-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .test-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .test-btn-run {
+            background: #667eea;
+            color: white;
+        }
+
+        .test-btn-run:hover {
+            background: #5568d3;
+        }
+
+        .test-btn-view {
+            background: #28a745;
+            color: white;
+        }
+
+        .test-btn-view:hover {
+            background: #218838;
+        }
+
+        .test-btn-pdf {
+            background: #dc3545;
+            color: white;
+        }
+
+        .test-btn-pdf:hover {
+            background: #c82333;
+        }
+
+        .test-error {
+            margin-top: 12px;
+            padding: 12px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            color: #856404;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .comparison-view {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .comparison-view.visible {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .comparison-panel {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .comparison-panel h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .comparison-content {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .comparison-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .data-display {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .data-display h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .data-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .data-section h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .data-content {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 16px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-running {
+            background: #fff3cd;
+            color: #856404;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box strong {
+            color: #004085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 XSL-FO to PDFMake Converter</h1>
+            <p>Unit Test Suite - Test Driven Development</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="runAllTests()">▶️ Run Tests</button>
+            <button class="btn btn-success" onclick="viewTestData()">📄 View Test Data</button>
+            <button class="btn btn-secondary" onclick="clearResults()">🗑️ Clear Results</button>
+            <span id="status" class="status status-ready">Ready</span>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>Current Test Focus:</strong> Extracting top-level PDFMake parameters (pageSize and pageMargins) from empty page XSL-FO document.
+            </div>
+
+            <div id="testResults">
+                <div class="loading">Click "Run Tests" to begin</div>
+            </div>
+
+            <div id="dataDisplay"></div>
+        </div>
+    </div>
+
+    <script src="../lib/pdfmake.min.js"></script>
+    <script src="../lib/vfs_fonts.js"></script>
+    <script src="../src/xslt-to-pdfmake.js"></script>
+    <script src="test-runner.js"></script>
+    
+    <!-- Load individual test files -->
+    <script src="tests/page-structure.test.js"></script>
+    <script src="tests/unit-conversion.test.js"></script>
+    <script src="tests/margin-parsing.test.js"></script>
+    <script src="tests/metadata.test.js"></script>
+    
+    <!-- Load test loader -->
+    <script src="test-definitions.js"></script>
+    <script>
+        // Configure PDFMake fonts
+        if (typeof pdfMake !== 'undefined') {
+            pdfMake.fonts = {
+                Roboto: {
+                    normal: 'Roboto-Regular.ttf',
+                    bold: 'Roboto-Medium.ttf',
+                    italics: 'Roboto-Italic.ttf',
+                    bolditalics: 'Roboto-MediumItalic.ttf'
+                },
+                Courier: {
+                    normal: 'Courier',
+                    bold: 'Courier-Bold',
+                    italics: 'Courier-Oblique',
+                    bolditalics: 'Courier-BoldOblique'
+                }
+            };
+        }
+    </script>
+    <script>
+        // Global variables
+        let converter = null;
+        let testRunner = null;
+        let emptyPageXML = null;
+        let testDataLoaded = false;
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            console.log('🚀 Initializing test environment...');
+            
+            // Create converter instance
+            converter = new XSLToPDFMakeConverter();
+            console.log('✅ Converter initialized');
+
+            // Create test runner
+            testRunner = new TestRunner();
+            console.log('✅ Test runner initialized');
+
+            // Load test data
+            await loadTestData();
+
+            // Register tests
+            registerTestsWrapper();
+
+            console.log('✅ Test environment ready!');
+        });
+
+        // Load test data files
+        async function loadTestData() {
+            try {
+                emptyPageXML = await loadTestFile('data/empty_page.xslt');
+                testDataLoaded = true;
+                console.log('✅ Test data loaded');
+            } catch (error) {
+                console.error('❌ Failed to load test data:', error);
+                document.getElementById('testResults').innerHTML = `
+                    <div class="test-error">
+                        <strong>Error loading test data:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Register all tests (using shared definitions)
+        function registerTestsWrapper() {
+            // Call the shared registerTests function
+            window.registerTests(testRunner, converter, emptyPageXML, assert);
+            console.log(`📝 Registered ${testRunner.tests.length} tests`);
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            if (!testDataLoaded) {
+                alert('Test data is still loading. Please wait...');
+                return;
+            }
+
+            // Update status
+            document.getElementById('status').className = 'status status-running';
+            document.getElementById('status').textContent = 'Running...';
+
+            // Clear previous results
+            document.getElementById('testResults').innerHTML = '<div class="loading">Running tests</div>';
+            document.getElementById('dataDisplay').innerHTML = '';
+
+            // Run tests
+            const results = await testRunner.runTests();
+
+            // Render results
+            testRunner.renderResults('testResults');
+
+            // Display data structures
+            displayDataStructures();
+
+            // Update status
+            const statusEl = document.getElementById('status');
+            if (results.failed === 0) {
+                statusEl.className = 'status status-ready';
+                statusEl.textContent = 'All Passed ✅';
+            } else {
+                statusEl.className = 'status status-ready';
+                statusEl.textContent = `${results.failed} Failed ❌`;
+            }
+        }
+
+        // Display extracted data structures
+        function displayDataStructures() {
+            if (!emptyPageXML) return;
+
+            const result = converter.convertToPDFMake(emptyPageXML);
+            const pageMasters = converter.parsePageMasters(emptyPageXML);
+
+            const html = `
+                <div class="data-display">
+                    <h3>📊 Extracted Data Structures</h3>
+                    
+                    <div class="data-section">
+                        <h4>PDFMake Definition (Top-Level Parameters)</h4>
+                        <div class="data-content">${JSON.stringify({
+                            pageSize: result.pageSize,
+                            pageMargins: result.pageMargins
+                        }, null, 2)}</div>
+                    </div>
+
+                    <div class="data-section">
+                        <h4>Page Masters Details</h4>
+                        <div class="data-content">${JSON.stringify(pageMasters, null, 2)}</div>
+                    </div>
+
+                    <div class="data-section">
+                        <h4>Metadata</h4>
+                        <div class="data-content">${JSON.stringify(result._metadata, null, 2)}</div>
+                    </div>
+
+                    <div class="data-section">
+                        <h4>Original XSL-FO (First 500 chars)</h4>
+                        <div class="data-content">${escapeHtml(emptyPageXML.substring(0, 500))}...</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dataDisplay').innerHTML = html;
+        }
+
+        // View test data
+        function viewTestData() {
+            if (!emptyPageXML) {
+                alert('Test data not loaded yet');
+                return;
+            }
+
+            displayDataStructures();
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '<div class="loading">Click "Run Tests" to begin</div>';
+            document.getElementById('dataDisplay').innerHTML = '';
+            document.getElementById('status').className = 'status status-ready';
+            document.getElementById('status').textContent = 'Ready';
+        }
+
+        // Helper to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Run a single test
+        async function runSingleTest(testIndex) {
+            const test = testRunner.tests[testIndex];
+            if (!test) return;
+
+            console.log(`Running test: ${test.name}`);
+            const result = await testRunner.runSingleTest(test);
+            
+            // Update the test item display
+            const testItem = document.getElementById(`test-item-${testIndex}`);
+            if (testItem) {
+                const statusIcon = result.passed ? '✅' : '❌';
+                const statusClass = result.passed ? 'test-pass' : 'test-fail';
+                
+                testItem.className = `test-item ${statusClass}`;
+                testItem.querySelector('.test-icon').textContent = statusIcon;
+                testItem.querySelector('.test-duration').textContent = `${result.duration}ms`;
+            }
+        }
+
+        // Toggle comparison view
+        async function toggleComparison(testIndex) {
+            const comparisonView = document.getElementById(`comparison-${testIndex}`);
+            if (!comparisonView) return;
+
+            const isVisible = comparisonView.classList.contains('visible');
+            
+            if (!isVisible) {
+                // Load and display the data
+                await loadComparisonData(testIndex);
+                comparisonView.classList.add('visible');
+            } else {
+                comparisonView.classList.remove('visible');
+            }
+        }
+
+        // Load comparison data
+        async function loadComparisonData(testIndex) {
+            if (!emptyPageXML) return;
+
+            try {
+                // Get original XSL-FO
+                const originalContent = document.getElementById(`original-${testIndex}`);
+                const convertedContent = document.getElementById(`converted-${testIndex}`);
+
+                // Display original XSL-FO (formatted)
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(emptyPageXML, 'text/xml');
+                const serializer = new XMLSerializer();
+                const formattedXml = formatXml(serializer.serializeToString(xmlDoc));
+                
+                originalContent.innerHTML = `<pre>${escapeHtml(formattedXml)}</pre>`;
+
+                // Display converted PDFMake
+                const pdfMakeDef = converter.convertToPDFMake(emptyPageXML);
+                const formattedJson = JSON.stringify({
+                    pageSize: pdfMakeDef.pageSize,
+                    pageMargins: pdfMakeDef.pageMargins,
+                    metadata: pdfMakeDef._metadata
+                }, null, 2);
+
+                convertedContent.innerHTML = `<pre>${escapeHtml(formattedJson)}</pre>`;
+            } catch (error) {
+                console.error('Error loading comparison data:', error);
+            }
+        }
+
+        // Generate PDF for a specific test
+        async function generateTestPDF(testIndex) {
+            if (!emptyPageXML) {
+                alert('Test data not loaded yet');
+                return;
+            }
+
+            try {
+                const pdfDef = converter.convertToPDFMake(emptyPageXML);
+                const test = testRunner.tests[testIndex];
+
+                // Add visual content to show the conversion results
+                pdfDef.content = [
+                    { 
+                        text: `Test ${testIndex + 1}: ${test.name}`, 
+                        fontSize: 20, 
+                        bold: true, 
+                        color: '#667eea',
+                        margin: [0, 0, 0, 20] 
+                    },
+                    { 
+                        text: 'Extracted Page Configuration', 
+                        fontSize: 16, 
+                        bold: true,
+                        margin: [0, 0, 0, 10] 
+                    },
+                    {
+                        table: {
+                            widths: ['*', '*'],
+                            body: [
+                                [
+                                    { text: 'Property', bold: true, fillColor: '#667eea', color: 'white' },
+                                    { text: 'Value', bold: true, fillColor: '#667eea', color: 'white' }
+                                ],
+                                [
+                                    'Page Size',
+                                    { text: JSON.stringify(pdfDef.pageSize), bold: true, color: '#28a745' }
+                                ],
+                                [
+                                    'Page Margins (points)',
+                                    { text: `[${pdfDef.pageMargins.join(', ')}]`, bold: true, color: '#28a745' }
+                                ],
+                                [
+                                    'Left Margin',
+                                    `${pdfDef.pageMargins[0]} pt (${(pdfDef.pageMargins[0]/72).toFixed(3)} in)`
+                                ],
+                                [
+                                    'Top Margin',
+                                    `${pdfDef.pageMargins[1]} pt (${(pdfDef.pageMargins[1]/72).toFixed(3)} in)`
+                                ],
+                                [
+                                    'Right Margin',
+                                    `${pdfDef.pageMargins[2]} pt (${(pdfDef.pageMargins[2]/72).toFixed(3)} in)`
+                                ],
+                                [
+                                    'Bottom Margin',
+                                    `${pdfDef.pageMargins[3]} pt (${(pdfDef.pageMargins[3]/72).toFixed(3)} in)`
+                                ],
+                                [
+                                    'Primary Page Master',
+                                    pdfDef._metadata.primaryMaster
+                                ],
+                                [
+                                    'Total Page Masters',
+                                    pdfDef._metadata.pageMasters.length.toString()
+                                ]
+                            ]
+                        },
+                        margin: [0, 0, 0, 20]
+                    },
+                    {
+                        text: 'Page Masters Details',
+                        fontSize: 16,
+                        bold: true,
+                        margin: [0, 20, 0, 10]
+                    },
+                    {
+                        text: JSON.stringify(pdfDef._metadata.pageMasters, null, 2),
+                        fontSize: 9,
+                        font: 'Courier',
+                        background: '#f8f9fa',
+                        margin: [10, 0, 10, 20]
+                    },
+                    {
+                        text: 'This PDF demonstrates the XSL-FO to PDFMake conversion.',
+                        italics: true,
+                        color: '#666',
+                        margin: [0, 20, 0, 0]
+                    },
+                    {
+                        text: 'The page size and margins were automatically extracted from the XSL-FO <fo:simple-page-master> element.',
+                        italics: true,
+                        color: '#666',
+                        fontSize: 10
+                    }
+                ];
+
+                // Add default font
+                pdfDef.defaultStyle = {
+                    font: 'Roboto'
+                };
+
+                // Generate and open PDF
+                pdfMake.createPdf(pdfDef).open();
+                
+                console.log(`✅ PDF generated for test ${testIndex + 1}`);
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+
+        // Format XML for display
+        function formatXml(xml) {
+            const PADDING = '  ';
+            const reg = /(>)(<)(\/*)/g;
+            let pad = 0;
+            
+            xml = xml.replace(reg, '$1\n$2$3');
+            
+            return xml.split('\n').map((node) => {
+                let indent = 0;
+                if (node.match(/.+<\/\w[^>]*>$/)) {
+                    indent = 0;
+                } else if (node.match(/^<\/\w/)) {
+                    if (pad !== 0) {
+                        pad -= 1;
+                    }
+                } else if (node.match(/^<\w([^>]*[^\/])?>.*$/)) {
+                    indent = 1;
+                } else {
+                    indent = 0;
+                }
+                
+                const padding = PADDING.repeat(pad);
+                pad += indent;
+                
+                return padding + node;
+            }).join('\n');
+        }
+    </script>
+</body>
+</html>
+
