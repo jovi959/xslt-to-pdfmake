@@ -171,7 +171,7 @@ class XSLToPDFMakeConverter {
             throw new Error('No page masters found in XSL-FO document');
         }
 
-        // For now, use the first page master as the primary page definition
+        // Use the first page master as the primary page definition
         const primaryMaster = pageMasters[0];
 
         // Determine page size
@@ -180,32 +180,14 @@ class XSLToPDFMakeConverter {
             primaryMaster.heightInPoints
         );
 
-        // Create PDFMake definition
+        // Create PDFMake definition (only pageSize and pageMargins)
         const pdfMakeDefinition = {
             pageSize: pageSize,
             pageMargins: primaryMaster.margins,
-            content: [
-                // Content will be added later
-            ],
-            // Store metadata about page masters
-            _metadata: {
-                pageMasters: pageMasters,
-                primaryMaster: primaryMaster.masterName
-            }
+            content: []
         };
 
         return pdfMakeDefinition;
-    }
-
-    /**
-     * Get margins for a specific page by master name
-     * @param {Array} pageMasters - Array of page master data
-     * @param {string} masterName - Name of the page master
-     * @returns {Array<number>} Margins [left, top, right, bottom] in points
-     */
-    getMargins(pageMasters, masterName) {
-        const master = pageMasters.find(m => m.masterName === masterName);
-        return master ? master.margins : [0, 0, 0, 0];
     }
 }
 

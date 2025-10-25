@@ -290,13 +290,11 @@ async function main() {
     const { registerPageStructureTests } = require('./tests/page-structure.test.js');
     const { registerUnitConversionTests } = require('./tests/unit-conversion.test.js');
     const { registerMarginParsingTests } = require('./tests/margin-parsing.test.js');
-    const { registerMetadataTests } = require('./tests/metadata.test.js');
     
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
     registerMarginParsingTests(testRunner, converter, emptyPageXML, assert);
-    registerMetadataTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests
     await testRunner.runTests();

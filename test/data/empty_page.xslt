@@ -12,7 +12,7 @@
   <!-- Page sequence -->
   <fo:page-sequence master-reference="EmptyPage">
     <fo:flow flow-name="xsl-region-body">
-      <!-- Empty content -->
+      <fo:block>Test content</fo:block>
     </fo:flow>
   </fo:page-sequence>
 </fo:root>

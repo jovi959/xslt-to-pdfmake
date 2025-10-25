@@ -468,7 +468,6 @@
     <script src="tests/page-structure.test.js"></script>
     <script src="tests/unit-conversion.test.js"></script>
     <script src="tests/margin-parsing.test.js"></script>
-    <script src="tests/metadata.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -481,12 +480,6 @@
                     bold: 'Roboto-Medium.ttf',
                     italics: 'Roboto-Italic.ttf',
                     bolditalics: 'Roboto-MediumItalic.ttf'
-                },
-                Courier: {
-                    normal: 'Courier',
-                    bold: 'Courier-Bold',
-                    italics: 'Courier-Oblique',
-                    bolditalics: 'Courier-BoldOblique'
                 }
             };
         }
@@ -582,32 +575,22 @@
             if (!emptyPageXML) return;
 
             const result = converter.convertToPDFMake(emptyPageXML);
-            const pageMasters = converter.parsePageMasters(emptyPageXML);
 
             const html = `
                 <div class="data-display">
                     <h3>📊 Extracted Data Structures</h3>
                     
                     <div class="data-section">
-                        <h4>PDFMake Definition (Top-Level Parameters)</h4>
+                        <h4>PDFMake Definition</h4>
                         <div class="data-content">${JSON.stringify({
                             pageSize: result.pageSize,
-                            pageMargins: result.pageMargins
+                            pageMargins: result.pageMargins,
+                            content: result.content
                         }, null, 2)}</div>
                     </div>
 
                     <div class="data-section">
-                        <h4>Page Masters Details</h4>
-                        <div class="data-content">${JSON.stringify(pageMasters, null, 2)}</div>
-                    </div>
-
-                    <div class="data-section">
-                        <h4>Metadata</h4>
-                        <div class="data-content">${JSON.stringify(result._metadata, null, 2)}</div>
-                    </div>
-
-                    <div class="data-section">
-                        <h4>Original XSL-FO (First 500 chars)</h4>
+                        <h4>Original XSL-FO</h4>
                         <div class="data-content">${escapeHtml(emptyPageXML.substring(0, 500))}...</div>
                     </div>
                 </div>
@@ -708,7 +691,7 @@
             }
         }
 
-        // Generate PDF for a specific test
+        // Generate PDF for a specific test - shows raw conversion result
         async function generateTestPDF(testIndex) {
             if (!emptyPageXML) {
                 alert('Test data not loaded yet');
@@ -716,101 +699,16 @@
             }
 
             try {
+                // Get the raw converted PDFMake definition
                 const pdfDef = converter.convertToPDFMake(emptyPageXML);
-                const test = testRunner.tests[testIndex];
+                
+                // DO NOT modify content - render EXACTLY what the converter outputs
+                // If content is empty [], the PDF will be a blank page with margins
+                
+                // Log the raw conversion for console inspection
+                console.log('Raw PDFMake Conversion (passed directly to pdfMake):', pdfDef);
 
-                // Add visual content to show the conversion results
-                pdfDef.content = [
-                    { 
-                        text: `Test ${testIndex + 1}: ${test.name}`, 
-                        fontSize: 20, 
-                        bold: true, 
-                        color: '#667eea',
-                        margin: [0, 0, 0, 20] 
-                    },
-                    { 
-                        text: 'Extracted Page Configuration', 
-                        fontSize: 16, 
-                        bold: true,
-                        margin: [0, 0, 0, 10] 
-                    },
-                    {
-                        table: {
-                            widths: ['*', '*'],
-                            body: [
-                                [
-                                    { text: 'Property', bold: true, fillColor: '#667eea', color: 'white' },
-                                    { text: 'Value', bold: true, fillColor: '#667eea', color: 'white' }
-                                ],
-                                [
-                                    'Page Size',
-                                    { text: JSON.stringify(pdfDef.pageSize), bold: true, color: '#28a745' }
-                                ],
-                                [
-                                    'Page Margins (points)',
-                                    { text: `[${pdfDef.pageMargins.join(', ')}]`, bold: true, color: '#28a745' }
-                                ],
-                                [
-                                    'Left Margin',
-                                    `${pdfDef.pageMargins[0]} pt (${(pdfDef.pageMargins[0]/72).toFixed(3)} in)`
-                                ],
-                                [
-                                    'Top Margin',
-                                    `${pdfDef.pageMargins[1]} pt (${(pdfDef.pageMargins[1]/72).toFixed(3)} in)`
-                                ],
-                                [
-                                    'Right Margin',
-                                    `${pdfDef.pageMargins[2]} pt (${(pdfDef.pageMargins[2]/72).toFixed(3)} in)`
-                                ],
-                                [
-                                    'Bottom Margin',
-                                    `${pdfDef.pageMargins[3]} pt (${(pdfDef.pageMargins[3]/72).toFixed(3)} in)`
-                                ],
-                                [
-                                    'Primary Page Master',
-                                    pdfDef._metadata.primaryMaster
-                                ],
-                                [
-                                    'Total Page Masters',
-                                    pdfDef._metadata.pageMasters.length.toString()
-                                ]
-                            ]
-                        },
-                        margin: [0, 0, 0, 20]
-                    },
-                    {
-                        text: 'Page Masters Details',
-                        fontSize: 16,
-                        bold: true,
-                        margin: [0, 20, 0, 10]
-                    },
-                    {
-                        text: JSON.stringify(pdfDef._metadata.pageMasters, null, 2),
-                        fontSize: 9,
-                        font: 'Courier',
-                        background: '#f8f9fa',
-                        margin: [10, 0, 10, 20]
-                    },
-                    {
-                        text: 'This PDF demonstrates the XSL-FO to PDFMake conversion.',
-                        italics: true,
-                        color: '#666',
-                        margin: [0, 20, 0, 0]
-                    },
-                    {
-                        text: 'The page size and margins were automatically extracted from the XSL-FO <fo:simple-page-master> element.',
-                        italics: true,
-                        color: '#666',
-                        fontSize: 10
-                    }
-                ];
-
-                // Add default font
-                pdfDef.defaultStyle = {
-                    font: 'Roboto'
-                };
-
-                // Generate and open PDF
+                // Generate and open PDF with EXACT converter output - no modifications
                 pdfMake.createPdf(pdfDef).open();
                 
                 console.log(`✅ PDF generated for test ${testIndex + 1}`);

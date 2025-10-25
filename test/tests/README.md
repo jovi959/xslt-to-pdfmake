@@ -20,7 +20,6 @@ test/
     ├── page-structure.test.js    - Document parsing & page size detection
     ├── unit-conversion.test.js   - Converting inches, cm, mm to points
     ├── margin-parsing.test.js    - Margin format parsing
-    ├── metadata.test.js          - Page master metadata storage
     └── README.md                 - This file
 ```
 
@@ -126,7 +125,6 @@ Group related tests in the same file:
 - **Page Structure** - Document parsing, page sizes, layouts
 - **Unit Conversion** - All measurement conversions (in, cm, mm, pt)
 - **Margin Parsing** - Margin formats and conversions
-- **Metadata** - Data storage and retrieval
 - **Content Parsing** - When you add content parsing features
 - **Edge Cases** - Error handling, invalid inputs
 
@@ -176,7 +174,6 @@ While the framework runs all tests together, you can comment out test file loads
 registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
 // registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
 // registerMarginParsingTests(testRunner, converter, emptyPageXML, assert);
-registerMetadataTests(testRunner, converter, emptyPageXML, assert);
 ```
 
 ## Tips

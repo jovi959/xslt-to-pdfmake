@@ -23,9 +23,6 @@ function registerTests(testRunner, converter, emptyPageXML, assert) {
     if (typeof registerMarginParsingTests === 'function') {
         registerMarginParsingTests(testRunner, converter, emptyPageXML, assert);
     }
-    if (typeof registerMetadataTests === 'function') {
-        registerMetadataTests(testRunner, converter, emptyPageXML, assert);
-    }
 }
 
 // Export for use in both browser and Node.js

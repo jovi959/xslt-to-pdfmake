@@ -48,21 +48,6 @@ function registerMarginParsingTests(testRunner, converter, emptyPageXML, assert)
         assert.approximately(marginsMixed[3], 28.35, 0.1, 'Bottom: 10mm ≈ 28.35pt');
     });
 
-    // Test: GetMargins helper with exact values
-    testRunner.addTest('Should retrieve exact margins by page master name', () => {
-        const pageMasters = converter.parsePageMasters(emptyPageXML);
-        
-        // Get margins by exact name
-        const margins = converter.getMargins(pageMasters, 'EmptyPage');
-        assert.ok(Array.isArray(margins), 'Should return an array');
-        assert.equal(margins.length, 4, 'Should have 4 margin values');
-        assert.deepEqual(margins, [36, 36, 54, 72], 'Should return exact margin values');
-        
-        // Test non-existent page master
-        const noMargins = converter.getMargins(pageMasters, 'NonExistentMaster');
-        assert.deepEqual(noMargins, [0, 0, 0, 0], 'Non-existent master should return zeros');
-    });
-
     // Test: Edge cases for margin parsing
     testRunner.addTest('Should handle edge cases in margin parsing', () => {
         // Empty or invalid margins

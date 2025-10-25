@@ -14,7 +14,6 @@ function registerPageStructureTests(testRunner, converter, emptyPageXML, assert)
         assert.ok(result.hasOwnProperty('pageSize'), 'Must have pageSize property');
         assert.ok(result.hasOwnProperty('pageMargins'), 'Must have pageMargins property');
         assert.ok(result.hasOwnProperty('content'), 'Must have content property');
-        assert.ok(result.hasOwnProperty('_metadata'), 'Must have _metadata property');
         
         // Verify content is initialized as empty array
         assert.ok(Array.isArray(result.content), 'content should be an array');
