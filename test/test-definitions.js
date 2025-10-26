@@ -32,12 +32,15 @@ function registerTests(testRunner, converter, emptyPageXML, assert) {
     if (typeof registerBlockConverterTests === 'function') {
         registerBlockConverterTests(testRunner, converter, emptyPageXML, assert);
     }
-    if (typeof registerRecursiveTraversalTests === 'function') {
-        registerRecursiveTraversalTests(testRunner, converter, emptyPageXML, assert);
-    }
-    if (typeof registerIntegratedConversionTests === 'function') {
-        registerIntegratedConversionTests(testRunner, converter, emptyPageXML, assert);
-    }
+if (typeof registerRecursiveTraversalTests === 'function') {
+    registerRecursiveTraversalTests(testRunner, converter, emptyPageXML, assert);
+}
+if (typeof registerNestedBlockStylingTests === 'function') {
+    registerNestedBlockStylingTests(testRunner, converter, emptyPageXML, assert);
+}
+if (typeof registerIntegratedConversionTests === 'function') {
+    registerIntegratedConversionTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

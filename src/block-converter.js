@@ -202,35 +202,52 @@ function convertBlock(node, children, traverse) {
         return null;
     }
 
-    // Build the text content
-    let textContent;
-    if (children && children.length > 0) {
-        // Check if we have mixed content (text + objects) or multiple items
-        const hasObjects = children.some(child => typeof child === 'object');
-        const hasMultipleItems = children.length > 1;
-        
-        // If only one child and it's a string, use it directly
-        if (children.length === 1 && typeof children[0] === 'string') {
-            textContent = children[0];
-        } else if (hasObjects || hasMultipleItems) {
-            // Multiple children or mixed content - use array
-            textContent = children;
-        } else {
-            // Single non-string child
-            textContent = children[0];
-        }
-    } else {
-        // No children - empty text
-        textContent = '';
-    }
-
-    // Extract and convert attributes
+    // Extract and convert attributes first (we'll need these to style text children)
     const bold = parseFontWeight(node.getAttribute('font-weight'));
     const italics = parseFontStyle(node.getAttribute('font-style'));
     const decoration = parseTextDecoration(node.getAttribute('text-decoration'));
     const fontSize = parseFontSize(node.getAttribute('font-size'));
     const color = parseColor(node.getAttribute('color'));
     const alignment = parseAlignment(node.getAttribute('text-align'));
+
+    // Build the text content
+    let textContent;
+    
+    if (children && children.length > 0) {
+        // Check if we have nested blocks (objects)
+        const hasNestedBlocks = children.some(child => typeof child === 'object' && child !== null && !Array.isArray(child));
+        
+        // If only one child and it's a string, use it directly
+        if (children.length === 1 && typeof children[0] === 'string') {
+            textContent = children[0];
+        } else if (hasNestedBlocks) {
+            // Has nested blocks - wrap text children with this block's styling
+            textContent = children.map(child => {
+                if (typeof child === 'string') {
+                    // Text node with nested block siblings - wrap with parent styling
+                    const styledText = { text: child };
+                    if (bold !== undefined) styledText.bold = bold;
+                    if (italics !== undefined) styledText.italics = italics;
+                    if (decoration !== undefined) styledText.decoration = decoration;
+                    if (fontSize !== undefined) styledText.fontSize = fontSize;
+                    if (color !== undefined) styledText.color = color;
+                    if (alignment !== undefined) styledText.alignment = alignment;
+                    
+                    // If no styling, return string as-is
+                    return Object.keys(styledText).length > 1 ? styledText : child;
+                } else {
+                    // Nested block - return as-is
+                    return child;
+                }
+            });
+        } else {
+            // No nested blocks - use array of children as-is
+            textContent = children.length === 1 ? children[0] : children;
+        }
+    } else {
+        // No children - empty text
+        textContent = '';
+    }
     
     // Check for border/padding properties
     const borderStyle = node.getAttribute('border-style');

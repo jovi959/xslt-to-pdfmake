@@ -836,6 +836,7 @@ async function main() {
     const { registerSinglePageSequenceTests } = require('./tests/single-page-sequence.test.js');
     const { registerBlockConverterTests } = require('./tests/block-converter.test.js');
     const { registerRecursiveTraversalTests } = require('./tests/recursive-traversal.test.js');
+    const { registerNestedBlockStylingTests } = require('./tests/nested-block-styling.test.js');
     const { registerIntegratedConversionTests } = require('./tests/integrated-conversion.test.js');
     
     // Load integrated conversion test data
@@ -852,6 +853,7 @@ async function main() {
     registerSinglePageSequenceTests(testRunner, converter, singlePageSequenceXML, assert);
     registerBlockConverterTests(testRunner, converter, blockConversionXML, assert);
     registerRecursiveTraversalTests(testRunner, converter, blockConversionXML, assert);
+    registerNestedBlockStylingTests(testRunner, converter, blockConversionXML, assert);
     registerIntegratedConversionTests(testRunner, converter, integratedConversionXML, assert);
 
     // Run all tests

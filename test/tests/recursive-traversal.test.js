@@ -121,13 +121,16 @@ function registerRecursiveTraversalTests(testRunner, converter, testXML, assert)
         assert.ok(Array.isArray(result.text), 'Text should be an array for nested content');
         assert.equal(result.bold, true, 'Parent should have bold property');
         
-        // Check first child (text)
-        assert.ok(result.text[0].includes('Parent Text'), 'Should contain parent text');
+        // Check first child (text) - with new behavior, text with block siblings is wrapped
+        const firstItem = result.text[0];
+        const parentText = typeof firstItem === 'string' ? firstItem : firstItem.text;
+        assert.ok(parentText.includes('Parent Text'), 'Should contain parent text');
         
         // Check second child (nested block)
         const childBlock = result.text.find(item => typeof item === 'object' && item.fontSize === 10);
         assert.ok(childBlock, 'Should have child block with fontSize');
-        assert.ok(childBlock.text.includes('Child Text'), 'Child should have correct text');
+        const childText = typeof childBlock.text === 'string' ? childBlock.text : childBlock.text;
+        assert.ok(String(childText).includes('Child Text'), 'Child should have correct text');
     });
 
     testRunner.addTest('Traversal: Should handle deeply nested blocks (3 levels)', () => {
@@ -174,18 +177,17 @@ function registerRecursiveTraversalTests(testRunner, converter, testXML, assert)
         
         const result = window.RecursiveTraversal.traverse(element, window.BlockConverter.convertBlock);
         
-        // Expected structure (from user's example):
-        // { text: [ { text: ['Parent Text',{ text: ['Child Text',{ text: 'Grandchild Text' }], fontSize: 10 },], bold: true }, ] }
-        // Note: The user's expected output has an extra wrapping level, but the core structure should match
+        // New behavior: text nodes with block siblings are wrapped with parent styling
         
         assert.ok(result.text, 'Should have text property');
         assert.equal(result.bold, true, 'Should have bold on parent');
         assert.ok(Array.isArray(result.text), 'Text should be array for nested content');
         
-        // Verify structure
-        const hasParentText = result.text.some(item => 
-            typeof item === 'string' && item.includes('Parent Text')
-        );
+        // Verify structure - text may be wrapped or unwrapped
+        const hasParentText = result.text.some(item => {
+            const text = typeof item === 'string' ? item : item.text;
+            return String(text).includes('Parent Text');
+        });
         assert.ok(hasParentText, 'Should contain parent text');
         
         const childBlock = result.text.find(item => 
@@ -255,16 +257,18 @@ function registerRecursiveTraversalTests(testRunner, converter, testXML, assert)
         assert.ok(Array.isArray(result.text), 'Text should be array for mixed content');
         assert.equal(result.bold, true, 'Should have bold property');
         
-        // Should have text before, block, and text after
-        const hasBeforeText = result.text.some(item => 
-            typeof item === 'string' && item.includes('Before child')
-        );
+        // With new behavior: text nodes with block siblings are wrapped with parent styling
+        const hasBeforeText = result.text.some(item => {
+            const text = typeof item === 'string' ? item : item.text;
+            return String(text).includes('Before child');
+        });
         const hasBlock = result.text.some(item => 
             typeof item === 'object' && item.fontSize === 10
         );
-        const hasAfterText = result.text.some(item => 
-            typeof item === 'string' && item.includes('After child')
-        );
+        const hasAfterText = result.text.some(item => {
+            const text = typeof item === 'string' ? item : item.text;
+            return String(text).includes('After child');
+        });
         
         assert.ok(hasBeforeText, 'Should have text before child block');
         assert.ok(hasBlock, 'Should have child block');

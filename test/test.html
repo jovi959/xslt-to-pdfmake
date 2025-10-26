@@ -437,6 +437,11 @@
         <div class="header">
             <h1>🧪 XSL-FO to PDFMake Converter</h1>
             <p>Unit Test Suite - Test Driven Development</p>
+            <div style="margin-top: 15px;">
+                <a href="../index.html" style="color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    🔄 Back to Converter
+                </a>
+            </div>
         </div>
 
         <div class="controls">
@@ -478,6 +483,7 @@
     <script src="tests/single-page-sequence.test.js"></script>
     <script src="tests/block-converter.test.js"></script>
     <script src="tests/recursive-traversal.test.js"></script>
+    <script src="tests/nested-block-styling.test.js"></script>
     <script src="tests/integrated-conversion.test.js"></script>
     
     <!-- Load test loader -->
@@ -561,6 +567,7 @@
                 { registerFn: registerSinglePageSequenceTests, xml: singlePageSequenceXML, name: 'single_page_sequence.xslt' },
                 { registerFn: registerBlockConverterTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
                 { registerFn: registerRecursiveTraversalTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
+                { registerFn: registerNestedBlockStylingTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
                 { registerFn: registerIntegratedConversionTests, xml: integratedConversionXML, name: 'integrated_conversion.xslt' }
             ];
             
