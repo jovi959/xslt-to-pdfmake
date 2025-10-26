@@ -14,9 +14,15 @@
 
 ## Code Organization Rules ⚠️ CRITICAL
 
-### **DO NOT add functions directly to `src/xslt-to-pdfmake.js`**
+### **DO NOT add new feature functions directly to `src/xslt-to-pdfmake.js`**
 
-To keep the codebase maintainable and prevent file bloat, **ALL new features MUST be created in separate module files**.
+To keep the codebase maintainable and prevent file bloat, **ALL new feature implementations MUST be created in separate module files**.
+
+**Important**: You CAN add methods to the main converter class if they're core infrastructure (like existing `convertToPoints`, `parseMargins`, etc.), but NEW FEATURE LOGIC (like block conversion, table parsing, image handling) should be in separate modules.
+
+**Examples:**
+- ✅ **CAN add to xslt-to-pdfmake.js**: Core utility methods, infrastructure, coordination logic
+- ❌ **MUST extract to separate module**: Block converter logic, table parser, font handler, image processor
 
 ### When Adding New Functionality
 
@@ -71,27 +77,43 @@ class XSLToPDFMakeConverter {
 }
 ```
 
-### File Size Guidelines
+### File Size Guidelines & When to Extract
 
-- **`src/xslt-to-pdfmake.js`**: Core converter class only (ideally < 500 lines)
+- **`src/xslt-to-pdfmake.js`**: Core converter class with infrastructure methods (ideally < 500 lines)
+  - Can contain: coordination, simple utilities, core converter methods
+  - Should NOT contain: new feature implementations, complex parsing logic
+  
 - **Feature modules**: Keep focused on single responsibility (< 200 lines each)
-- **If a method exceeds 50 lines**: Consider extracting to separate module
+  - One module per XSL-FO element type (block, table, list, etc.)
+  - One module per distinct feature (fonts, images, layouts, etc.)
+
+- **When to extract to separate module:**
+  - Adding a new XSL-FO element converter (e.g., `<fo:block>`, `<fo:table>`)
+  - Adding complex feature logic (> 50 lines for one feature)
+  - Adding functionality that will grow/evolve independently
+  - Adding anything that's not core infrastructure
 
 ### Examples of What Should Be Separate Modules
 
-✅ **Create separate files for:**
-- Complex parsing logic (e.g., `src/page-sequence-parser.js`)
-- Formatting/transformation utilities (e.g., `src/doc-definition-formatter.js`)
-- Unit conversion libraries (e.g., `src/unit-converter.js`)
-- Content extraction (e.g., `src/content-parser.js`)
-- Table processing (e.g., `src/table-converter.js`)
-- Font handling (e.g., `src/font-parser.js`)
+✅ **Create separate files for NEW FEATURES:**
+- Block conversion logic (e.g., `src/block-converter.js`) ← **NEW feature implementation**
+- Table processing (e.g., `src/table-converter.js`) ← **NEW feature implementation**
+- List handling (e.g., `src/list-converter.js`) ← **NEW feature implementation**
+- Image processing (e.g., `src/image-handler.js`) ← **NEW feature implementation**
+- Font parsing (e.g., `src/font-parser.js`) ← **Complex feature logic**
+- Complex formatting utilities (e.g., `src/doc-definition-formatter.js`)
 
-❌ **Do NOT add directly to `xslt-to-pdfmake.js`:**
-- Large parsing functions
-- Complex transformation logic
-- Utility functions that could be reused
-- Feature-specific code
+✅ **CAN remain in or be added to `xslt-to-pdfmake.js`:**
+- Core converter class methods (orchestration)
+- Simple utility methods like `convertToPoints()`, `parseMargins()`
+- Infrastructure methods that coordinate between modules
+- Small helper functions used across the main converter
+
+❌ **NEVER add NEW FEATURE IMPLEMENTATIONS directly to `xslt-to-pdfmake.js`:**
+- Large parsing functions for specific elements (blocks, tables, etc.)
+- Complex transformation logic for features
+- Element-specific conversion logic
+- Feature modules that will grow over time
 
 ### Module Template
 
@@ -421,16 +443,31 @@ registerFontParsingTests(testRunner, converter, emptyPageXML, assert);
 <script src="tests/font-parsing.test.js"></script>
 ```
 
-**5. Add method to converter** (`src/xslt-to-pdfmake.js`):
+**5. Implement feature logic** (in separate module if it's a new feature):
+
+For a **simple utility method** (can go in main converter):
 ```javascript
-/**
- * Parse font-family string
- * @param {string} fontFamily - CSS font-family value
- * @returns {string} Primary font name
- */
+// In src/xslt-to-pdfmake.js
 parseFontFamily(fontFamily) {
     if (!fontFamily) return 'Helvetica';
     return fontFamily.split(',')[0].trim();
+}
+```
+
+For a **new feature** (must be in separate module):
+```javascript
+// In src/font-parser.js
+function parseFontFamily(fontFamily) {
+    if (!fontFamily) return 'Helvetica';
+    return fontFamily.split(',')[0].trim();
+}
+
+function parseFontWeight(weight) { /* ... */ }
+function parseFontStyle(style) { /* ... */ }
+
+// Export
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { parseFontFamily, parseFontWeight, parseFontStyle };
 }
 ```
 

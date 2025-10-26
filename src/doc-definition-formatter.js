@@ -9,32 +9,17 @@
  * @returns {string} JavaScript code representation
  */
 function formatDocDefinitionAsCode(pdfDef) {
-    let jsCode = 'const docDefinition = {\n';
-    jsCode += `  pageSize: ${typeof pdfDef.pageSize === 'string' ? `'${pdfDef.pageSize}'` : JSON.stringify(pdfDef.pageSize)},\n`;
-    jsCode += `  pageMargins: [${pdfDef.pageMargins.join(', ')}],\n`;
+    // Simple approach: just stringify the entire object
+    // Handle functions specially since they can't be JSON stringified
+    const replacer = (key, value) => {
+        if (typeof value === 'function') {
+            return value.toString();
+        }
+        return value;
+    };
     
-    // Handle header (function or object)
-    if (typeof pdfDef.header === 'function') {
-        // Use the actual function source code
-        const functionStr = pdfDef.header.toString();
-        jsCode += '\n  header: ' + functionStr + ',\n';
-    } else if (pdfDef.header) {
-        jsCode += `\n  header: ${JSON.stringify(pdfDef.header, null, 2).replace(/\n/g, '\n  ')},\n`;
-    }
-    
-    // Handle footer (function or object)
-    if (typeof pdfDef.footer === 'function') {
-        // Use the actual function source code
-        const functionStr = pdfDef.footer.toString();
-        jsCode += '\n  footer: ' + functionStr + ',\n';
-    } else if (pdfDef.footer) {
-        jsCode += `\n  footer: ${JSON.stringify(pdfDef.footer, null, 2).replace(/\n/g, '\n  ')},\n`;
-    }
-    
-    jsCode += '\n  content: []\n';
-    jsCode += '};';
-    
-    return jsCode;
+    const jsonStr = JSON.stringify(pdfDef, replacer, 2);
+    return `const docDefinition = ${jsonStr};`;
 }
 
 // Export for use in other files (works in both browser and Node.js)

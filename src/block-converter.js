@@ -111,10 +111,85 @@ function parseAlignment(textAlign) {
 }
 
 /**
+ * Extracts numeric value from a CSS size string without unit conversion
+ * @param {string} size - CSS size value (e.g., '0.5pt', '5px', '10')
+ * @returns {number|undefined} Numeric value, undefined if not specified
+ */
+function parseNumericValue(size) {
+    if (!size) return undefined;
+    
+    const match = size.match(/^([\d.]+)(pt|px|em|rem)?$/);
+    if (!match) return undefined;
+    
+    return parseFloat(match[1]);
+}
+
+/**
+ * Parses border-width attribute to numeric value
+ * @param {string} borderWidth - CSS border-width value (e.g., '0.5pt', '1px')
+ * @returns {number|undefined} Width value, undefined if not specified
+ */
+function parseBorderWidth(borderWidth) {
+    if (!borderWidth) return undefined;
+    return parseNumericValue(borderWidth);
+}
+
+/**
+ * Parses padding attribute to PDFMake margin array [left, top, right, bottom]
+ * @param {string} padding - CSS padding value (e.g., '5px 0px 5px 0px', '5px', '5px 10px')
+ * @returns {Array|undefined} Margin array [left, top, right, bottom] or undefined
+ */
+function parsePadding(padding) {
+    if (!padding) return undefined;
+    
+    const parts = padding.trim().split(/\s+/);
+    const values = parts.map(p => parseNumericValue(p) || 0);
+    
+    if (values.length === 1) {
+        // All sides same
+        return [values[0], values[0], values[0], values[0]];
+    } else if (values.length === 2) {
+        // top/bottom, left/right
+        return [values[1], values[0], values[1], values[0]];
+    } else if (values.length === 3) {
+        // top, left/right, bottom
+        return [values[1], values[0], values[1], values[2]];
+    } else if (values.length === 4) {
+        // top, right, bottom, left -> convert to left, top, right, bottom
+        return [values[3], values[0], values[1], values[2]];
+    }
+    
+    return undefined;
+}
+
+/**
+ * Parses margin attribute to PDFMake margin array [left, top, right, bottom]
+ * @param {string} margin - CSS margin value (e.g., '10px 0px 10px 0px', '10px', '5px 10px')
+ * @returns {Array|undefined} Margin array [left, top, right, bottom] or undefined
+ */
+function parseMargin(margin) {
+    return parsePadding(margin); // Same logic as padding
+}
+
+/**
+ * Checks if a block has border properties
+ * @param {Element} node - The fo:block DOM element
+ * @returns {boolean} true if block has border properties
+ */
+function hasBorder(node) {
+    return !!(node.getAttribute('border-style') || 
+              node.getAttribute('border-width') || 
+              node.getAttribute('border-color') ||
+              node.getAttribute('padding'));
+}
+
+/**
  * Converts a <fo:block> element to PDFMake content definition
  * 
  * This function is designed to be used as a converter callback for the traverse function.
  * It extracts attributes from the fo:block element and converts them to PDFMake properties.
+ * 
+ * If the block has border properties, it returns a table structure with a single cell.
  * 
  * @param {Element} node - The fo:block DOM element
  * @param {Array} children - Already-processed child content from recursive traversal
@@ -127,10 +202,8 @@ function convertBlock(node, children, traverse) {
         return null;
     }
 
-    // Build the PDFMake content object
-    const result = {};
-
-    // Handle content (children)
+    // Build the text content
+    let textContent;
     if (children && children.length > 0) {
         // Check if we have mixed content (text + objects) or multiple items
         const hasObjects = children.some(child => typeof child === 'object');
@@ -138,17 +211,17 @@ function convertBlock(node, children, traverse) {
         
         // If only one child and it's a string, use it directly
         if (children.length === 1 && typeof children[0] === 'string') {
-            result.text = children[0];
+            textContent = children[0];
         } else if (hasObjects || hasMultipleItems) {
             // Multiple children or mixed content - use array
-            result.text = children;
+            textContent = children;
         } else {
             // Single non-string child
-            result.text = children[0];
+            textContent = children[0];
         }
     } else {
         // No children - empty text
-        result.text = '';
+        textContent = '';
     }
 
     // Extract and convert attributes
@@ -158,7 +231,65 @@ function convertBlock(node, children, traverse) {
     const fontSize = parseFontSize(node.getAttribute('font-size'));
     const color = parseColor(node.getAttribute('color'));
     const alignment = parseAlignment(node.getAttribute('text-align'));
-
+    
+    // Check for border/padding properties
+    const borderStyle = node.getAttribute('border-style');
+    const borderWidth = parseBorderWidth(node.getAttribute('border-width'));
+    const borderColor = parseColor(node.getAttribute('border-color'));
+    const padding = parsePadding(node.getAttribute('padding'));
+    const margin = parseMargin(node.getAttribute('margin'));
+    
+    // If block has borders or padding, convert to table
+    if (hasBorder(node)) {
+        // Build the cell content with text styling
+        const cellContent = { text: textContent };
+        if (bold !== undefined) cellContent.bold = bold;
+        if (italics !== undefined) cellContent.italics = italics;
+        if (decoration !== undefined) cellContent.decoration = decoration;
+        if (fontSize !== undefined) cellContent.fontSize = fontSize;
+        if (color !== undefined) cellContent.color = color;
+        if (alignment !== undefined) cellContent.alignment = alignment;
+        
+        // Convert padding to margin inside the cell
+        if (padding !== undefined) {
+            cellContent.margin = padding;
+        }
+        
+        // Set border on all sides
+        cellContent.border = [true, true, true, true];
+        
+        // Build the table structure
+        const tableStructure = {
+            table: {
+                widths: ['*'],
+                body: [[cellContent]]
+            }
+        };
+        
+        // Add layout for border styling if border width or color specified
+        if (borderWidth !== undefined || borderColor !== undefined) {
+            const lineWidth = borderWidth !== undefined ? borderWidth : 0.5;
+            const lineColor = borderColor !== undefined ? borderColor : '#000000';
+            
+            tableStructure.layout = {
+                hLineWidth: function() { return lineWidth; },
+                vLineWidth: function() { return lineWidth; },
+                hLineColor: function() { return lineColor; },
+                vLineColor: function() { return lineColor; }
+            };
+        }
+        
+        // Apply margin outside the table
+        if (margin !== undefined) {
+            tableStructure.margin = margin;
+        }
+        
+        return tableStructure;
+    }
+    
+    // No border - return normal text block
+    const result = { text: textContent };
+    
     // Only add properties that are defined
     if (bold !== undefined) result.bold = bold;
     if (italics !== undefined) result.italics = italics;
@@ -166,6 +297,7 @@ function convertBlock(node, children, traverse) {
     if (fontSize !== undefined) result.fontSize = fontSize;
     if (color !== undefined) result.color = color;
     if (alignment !== undefined) result.alignment = alignment;
+    if (margin !== undefined) result.margin = margin;
 
     // If result only has text property and it's a string, return just the string
     if (Object.keys(result).length === 1 && typeof result.text === 'string') {
@@ -184,7 +316,12 @@ if (typeof module !== 'undefined' && module.exports) {
         parseTextDecoration,
         parseFontSize,
         parseColor,
-        parseAlignment
+        parseAlignment,
+        parseNumericValue,
+        parseBorderWidth,
+        parsePadding,
+        parseMargin,
+        hasBorder
     };
 }
 if (typeof window !== 'undefined') {
@@ -195,7 +332,12 @@ if (typeof window !== 'undefined') {
         parseTextDecoration,
         parseFontSize,
         parseColor,
-        parseAlignment
+        parseAlignment,
+        parseNumericValue,
+        parseBorderWidth,
+        parsePadding,
+        parseMargin,
+        hasBorder
     };
 }
 

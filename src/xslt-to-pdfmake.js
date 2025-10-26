@@ -221,9 +221,90 @@ class XSLToPDFMakeConverter {
     }
 
     /**
-     * Convert XSL-FO document to PDFMake definition (top-level parameters only)
+     * Extract and convert content from XSL-FO flow elements
+     * This method coordinates the recursive traversal and block conversion
      * @param {string} xslfoXml - XSL-FO XML string
-     * @returns {Object} PDFMake document definition with pageSize and pageMargins
+     * @returns {Array} Array of converted content items
+     */
+    extractContent(xslfoXml) {
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xslfoXml, 'text/xml');
+
+            // Check for parsing errors
+            const parserError = xmlDoc.querySelector('parsererror');
+            if (parserError) {
+                throw new Error('XML parsing error: ' + parserError.textContent);
+            }
+
+            // Find all flow elements (where content lives)
+            const flows = xmlDoc.querySelectorAll('flow, fo\\:flow');
+            const content = [];
+
+            // If no flows found, return empty content
+            if (!flows || flows.length === 0) {
+                return content;
+            }
+
+            // Check if we have the required modules available
+            const hasTraversal = typeof window !== 'undefined' && window.RecursiveTraversal;
+            const hasBlockConverter = typeof window !== 'undefined' && window.BlockConverter;
+
+            // If modules not available in browser, check Node.js
+            let traverse, convertBlock;
+            if (hasTraversal && hasBlockConverter) {
+                traverse = window.RecursiveTraversal.traverse;
+                convertBlock = window.BlockConverter.convertBlock;
+            } else if (typeof require !== 'undefined') {
+                // Node.js environment
+                try {
+                    const RecursiveTraversal = require('./recursive-traversal.js');
+                    const BlockConverter = require('./block-converter.js');
+                    traverse = RecursiveTraversal.traverse;
+                    convertBlock = BlockConverter.convertBlock;
+                } catch (e) {
+                    console.warn('Block conversion modules not available:', e.message);
+                    return content; // Return empty content if modules not available
+                }
+            }
+
+            if (!traverse || !convertBlock) {
+                console.warn('Block conversion not available - modules not loaded');
+                return content;
+            }
+
+            // Process each flow
+            flows.forEach(flow => {
+                // Get all direct children of flow (typically fo:block elements)
+                const children = flow.childNodes;
+                
+                for (let i = 0; i < children.length; i++) {
+                    const child = children[i];
+                    
+                    // Skip text nodes and comments
+                    if (child.nodeType !== 1) continue;
+                    
+                    // Process block elements
+                    if (child.nodeName === 'fo:block' || child.nodeName === 'block') {
+                        const converted = traverse(child, convertBlock);
+                        if (converted !== null && converted !== undefined) {
+                            content.push(converted);
+                        }
+                    }
+                }
+            });
+
+            return content;
+        } catch (error) {
+            console.error('Error extracting content:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Convert XSL-FO document to PDFMake definition
+     * @param {string} xslfoXml - XSL-FO XML string
+     * @returns {Object} PDFMake document definition with pageSize, pageMargins, and content
      */
     convertToPDFMake(xslfoXml) {
         const pageMasters = this.parsePageMasters(xslfoXml);
@@ -242,11 +323,14 @@ class XSLToPDFMakeConverter {
             primaryMaster.heightInPoints
         );
 
+        // Extract and convert content
+        const content = this.extractContent(xslfoXml);
+
         // Create PDFMake definition
         const pdfMakeDefinition = {
             pageSize: pageSize,
             pageMargins: [0, 0, 0, 0], // Always [0,0,0,0] when using header/footer
-            content: []
+            content: content
         };
 
         // Generate header/footer based on page sequences

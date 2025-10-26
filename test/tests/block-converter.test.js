@@ -207,6 +207,111 @@ function registerBlockConverterTests(testRunner, converter, testXML, assert) {
         const result = window.BlockConverter.parseAlignment('invalid');
         assert.equal(result, undefined, 'Should return undefined for invalid alignment');
     });
+
+    // Border and padding tests
+    testRunner.addTest('parseBorderWidth: Should parse border width', () => {
+        assert.equal(window.BlockConverter.parseBorderWidth('0.5pt'), 0.5);
+        assert.equal(window.BlockConverter.parseBorderWidth('1pt'), 1);
+        assert.equal(window.BlockConverter.parseBorderWidth('2px'), 2);
+    });
+
+    testRunner.addTest('parsePadding: Should parse single value', () => {
+        const result = window.BlockConverter.parsePadding('10px');
+        assert.deepEqual(result, [10, 10, 10, 10], 'Should expand to all sides');
+    });
+
+    testRunner.addTest('parsePadding: Should parse two values (vertical horizontal)', () => {
+        const result = window.BlockConverter.parsePadding('5px 10px');
+        assert.deepEqual(result, [10, 5, 10, 5], 'Should be [left, top, right, bottom]');
+    });
+
+    testRunner.addTest('parsePadding: Should parse four values', () => {
+        const result = window.BlockConverter.parsePadding('5px 0px 5px 0px');
+        assert.deepEqual(result, [0, 5, 0, 5], 'Should convert from top,right,bottom,left to left,top,right,bottom');
+    });
+
+    testRunner.addTest('parseMargin: Should parse margin values', () => {
+        const result = window.BlockConverter.parseMargin('10px 0px 10px 0px');
+        assert.deepEqual(result, [0, 10, 0, 10], 'Should parse margin like padding');
+    });
+
+    testRunner.addTest('Block Converter: Should convert block with border to table', () => {
+        const xml = `
+            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
+                      border-style="solid" 
+                      border-width="0.5pt" 
+                      border-color="#000000"
+                      font-weight="bold" 
+                      font-size="12pt" 
+                      text-align="center"
+                      padding="5px 0px 5px 0px"
+                      margin="10px 0px 10px 0px">
+                Test Text
+            </fo:block>
+        `;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        const element = xmlDoc.documentElement;
+        
+        const result = window.BlockConverter.convertBlock(element, ['Test Text'], null);
+        
+        assert.ok(result.table, 'Should have table property');
+        assert.deepEqual(result.table.widths, ['*'], 'Table should span full width');
+        assert.ok(Array.isArray(result.table.body), 'Should have body array');
+        assert.equal(result.table.body.length, 1, 'Should have one row');
+        assert.equal(result.table.body[0].length, 1, 'Should have one cell');
+        
+        const cell = result.table.body[0][0];
+        assert.equal(cell.text, 'Test Text', 'Cell should contain text');
+        assert.equal(cell.bold, true, 'Cell should be bold');
+        assert.equal(cell.fontSize, 12, 'Cell should have fontSize');
+        assert.equal(cell.alignment, 'center', 'Cell should be centered');
+        assert.deepEqual(cell.margin, [0, 5, 0, 5], 'Padding should be converted to cell margin');
+        
+        assert.ok(result.layout, 'Should have layout property');
+        assert.equal(typeof result.layout.hLineWidth, 'function', 'Should have hLineWidth function');
+        assert.equal(typeof result.layout.vLineWidth, 'function', 'Should have vLineWidth function');
+        assert.equal(result.layout.hLineWidth(), 0.5, 'Should have correct border width');
+        assert.equal(result.layout.hLineColor(), '#000000', 'Should have correct border color');
+        
+        assert.deepEqual(result.margin, [0, 10, 0, 10], 'Should have margin outside table');
+    });
+
+    testRunner.addTest('Block Converter: Should convert block with padding only to table', () => {
+        const xml = `
+            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" padding="10px">
+                Padded Text
+            </fo:block>
+        `;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        const element = xmlDoc.documentElement;
+        
+        const result = window.BlockConverter.convertBlock(element, ['Padded Text'], null);
+        
+        assert.ok(result.table, 'Should have table property for padding');
+        assert.deepEqual(result.table.body[0][0].margin, [10, 10, 10, 10], 'Should have padding as margin');
+    });
+
+    testRunner.addTest('Block Converter: Should not convert block without border to table', () => {
+        const xml = `
+            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
+                      font-weight="bold" 
+                      margin="10px">
+                Normal Text
+            </fo:block>
+        `;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        const element = xmlDoc.documentElement;
+        
+        const result = window.BlockConverter.convertBlock(element, ['Normal Text'], null);
+        
+        assert.ok(!result.table, 'Should not have table property');
+        assert.equal(result.text, 'Normal Text', 'Should have text property');
+        assert.equal(result.bold, true, 'Should have bold');
+        assert.deepEqual(result.margin, [10, 10, 10, 10], 'Should have margin on text block');
+    });
 }
 
 // Export for both browser and Node.js

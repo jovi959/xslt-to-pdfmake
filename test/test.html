@@ -478,6 +478,7 @@
     <script src="tests/single-page-sequence.test.js"></script>
     <script src="tests/block-converter.test.js"></script>
     <script src="tests/recursive-traversal.test.js"></script>
+    <script src="tests/integrated-conversion.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -502,6 +503,7 @@
         let pageSequenceXML = null;
         let singlePageSequenceXML = null;
         let blockConversionXML = null;
+        let integratedConversionXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -533,6 +535,7 @@
                 pageSequenceXML = await loadTestFile('data/page_sequence.xslt');
                 singlePageSequenceXML = await loadTestFile('data/single_page_sequence.xslt');
                 blockConversionXML = await loadTestFile('data/block_conversion.xslt');
+                integratedConversionXML = await loadTestFile('data/integrated_conversion.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -557,7 +560,8 @@
                 { registerFn: registerPageSequenceTests, xml: pageSequenceXML, name: 'page_sequence.xslt' },
                 { registerFn: registerSinglePageSequenceTests, xml: singlePageSequenceXML, name: 'single_page_sequence.xslt' },
                 { registerFn: registerBlockConverterTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
-                { registerFn: registerRecursiveTraversalTests, xml: blockConversionXML, name: 'block_conversion.xslt' }
+                { registerFn: registerRecursiveTraversalTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
+                { registerFn: registerIntegratedConversionTests, xml: integratedConversionXML, name: 'integrated_conversion.xslt' }
             ];
             
             // Register each test suite and map to its data file
@@ -594,9 +598,25 @@
             // Clear previous results
             document.getElementById('testResults').innerHTML = '<div class="loading">Running tests</div>';
             document.getElementById('dataDisplay').innerHTML = '';
-
+            
             // Run tests
-            const results = await testRunner.runTests();
+            testRunner.passCount = 0;
+            testRunner.failCount = 0;
+            testRunner.results = [];
+
+            for (let i = 0; i < testRunner.tests.length; i++) {
+                const test = testRunner.tests[i];
+                
+                // Run the test
+                const result = await testRunner.runSingleTest(test);
+                testRunner.results.push(result);
+                
+                if (result.passed) {
+                    testRunner.passCount++;
+                } else {
+                    testRunner.failCount++;
+                }
+            }
 
             // Render results
             testRunner.renderResults('testResults');
@@ -606,12 +626,12 @@
 
             // Update status
             const statusEl = document.getElementById('status');
-            if (results.failed === 0) {
+            if (testRunner.failCount === 0) {
                 statusEl.className = 'status status-ready';
                 statusEl.textContent = 'All Passed ✅';
             } else {
                 statusEl.className = 'status status-ready';
-                statusEl.textContent = `${results.failed} Failed ❌`;
+                statusEl.textContent = `${testRunner.failCount} Failed ❌`;
             }
         }
 
@@ -675,6 +695,7 @@
             if (!test) return;
 
             console.log(`Running test: ${test.name}`);
+            
             const result = await testRunner.runSingleTest(test);
             
             // Update the test item display
@@ -707,17 +728,18 @@
 
         // Load comparison data
         async function loadComparisonData(testIndex) {
-            // Get the correct XML data for this test
-            const testData = testDataMapping[testIndex];
-            if (!testData || !testData.xml) {
-                console.error('No test data found for test index:', testIndex);
-                return;
-            }
-
             try {
                 // Get original XSL-FO
                 const originalContent = document.getElementById(`original-${testIndex}`);
                 const convertedContent = document.getElementById(`converted-${testIndex}`);
+
+                const testData = testDataMapping[testIndex];
+                if (!testData || !testData.xml) {
+                    console.error('No test data found for test index:', testIndex);
+                    originalContent.innerHTML = '<em>No data available</em>';
+                    convertedContent.innerHTML = '<em>No data available</em>';
+                    return;
+                }
 
                 // Display original XSL-FO (formatted)
                 const parser = new DOMParser();
@@ -727,41 +749,32 @@
                 
                 originalContent.innerHTML = `<pre>${escapeHtml(formattedXml)}</pre>`;
 
-                // Display converted PDFMake as JavaScript code (not JSON)
+                // Convert XML to PDFMake - use the EXACT SAME logic as Generate PDF
                 const pdfMakeDef = converter.convertToPDFMake(testData.xml);
                 
-                // Use shared formatter to convert to displayable code
+                // Format and display
                 const jsCode = formatDocDefinitionAsCode(pdfMakeDef);
-
                 convertedContent.innerHTML = `<pre>${escapeHtml(jsCode)}</pre>`;
             } catch (error) {
                 console.error('Error loading comparison data:', error);
+                convertedContent.innerHTML = `<em>Error: ${error.message}</em>`;
             }
         }
 
         // Generate PDF for a specific test - shows raw conversion result
         async function generateTestPDF(testIndex) {
-            // Get the correct XML data for this test
-            const testData = testDataMapping[testIndex];
-            if (!testData || !testData.xml) {
-                alert('Test data not loaded yet');
-                return;
-            }
-
             try {
-                // Get the raw converted PDFMake definition
+                const testData = testDataMapping[testIndex];
+                if (!testData || !testData.xml) {
+                    alert('Test data not loaded yet');
+                    return;
+                }
+                
+                // Convert XML to PDFMake - same logic as View Data
                 const pdfDef = converter.convertToPDFMake(testData.xml);
-                
-                // DO NOT modify content - render EXACTLY what the converter outputs
-                // If content is empty [], the PDF will be a blank page with margins
-                
-                // Log the raw conversion for console inspection
-                console.log(`Raw PDFMake Conversion for ${testData.name}:`, pdfDef);
 
                 // Generate and open PDF with EXACT converter output - no modifications
                 pdfMake.createPdf(pdfDef).open();
-                
-                console.log(`✅ PDF generated for test ${testIndex + 1} using ${testData.name}`);
             } catch (error) {
                 console.error('Error generating PDF:', error);
                 alert('Error generating PDF: ' + error.message);

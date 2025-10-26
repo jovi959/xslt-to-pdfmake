@@ -454,6 +454,122 @@ class XSLToPDFMakeConverter {
         return { sequences };
     }
 
+    extractContent(xslfoXml) {
+        try {
+            // Load block conversion modules
+            const { traverse } = require('../src/recursive-traversal.js');
+            const { convertBlock } = require('../src/block-converter.js');
+
+            if (!traverse || !convertBlock) {
+                console.warn('Block conversion modules not available');
+                return [];
+            }
+
+            const parser = new SimpleXMLParser();
+            const content = [];
+
+            // Find flow elements and extract their direct block children
+            const flowRegex = /<(fo:)?flow[^>]*>([\s\S]*?)<\/\1?flow>/gi;
+            let flowMatch;
+            
+            while ((flowMatch = flowRegex.exec(xslfoXml)) !== null) {
+                const flowContent = flowMatch[2]; // Capture group 2 is the content between flow tags
+                
+                // Extract each top-level block using proper depth counting
+                let currentPos = 0;
+                
+                while (currentPos < flowContent.length) {
+                    // Find next block start
+                    const blockStartRegex = /<(fo:block|block)[\s>]/;
+                    const startMatch = flowContent.substring(currentPos).match(blockStartRegex);
+                    
+                    if (!startMatch) break;
+                    
+                    const blockStart = currentPos + startMatch.index;
+                    const tagName = startMatch[1];
+                    
+                    // Extract the complete block using depth counting
+                    const blockXml = this._extractBlockAt(flowContent, blockStart, tagName);
+                    
+                    if (blockXml) {
+                        // Parse and convert the block
+                        const blockDoc = parser.parse(blockXml);
+                        const blockElement = blockDoc.documentElement;
+                        
+                        if (blockElement) {
+                            const converted = traverse(blockElement, convertBlock);
+                            if (converted !== null && converted !== undefined) {
+                                content.push(converted);
+                            }
+                        }
+                        
+                        currentPos = blockStart + blockXml.length;
+                    } else {
+                        currentPos = blockStart + 1;
+                    }
+                }
+            }
+
+            return content;
+        } catch (error) {
+            console.error('Error extracting content:', error);
+            return [];
+        }
+    }
+
+    _extractBlockAt(content, startIndex, tagName) {
+        const remaining = content.substring(startIndex);
+        const escapedTagName = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Find opening tag
+        const openingRegex = new RegExp(`^<${escapedTagName}[^>]*>`, 'i');
+        const openingMatch = remaining.match(openingRegex);
+        if (!openingMatch) return null;
+        
+        const contentStart = openingMatch[0].length;
+        let depth = 1;
+        
+        // Find all opening and closing tags
+        const openRegex = new RegExp(`<${escapedTagName}[\\s>]`, 'gi');
+        const closeRegex = new RegExp(`<\\/${escapedTagName}>`, 'gi');
+        
+        const opens = [];
+        const closes = [];
+        
+        let m;
+        openRegex.lastIndex = contentStart;
+        while ((m = openRegex.exec(remaining)) !== null) {
+            opens.push(m.index);
+        }
+        
+        closeRegex.lastIndex = 0;
+        while ((m = closeRegex.exec(remaining)) !== null) {
+            closes.push({ index: m.index, length: m[0].length });
+        }
+        
+        // Find matching close tag
+        let openIdx = 0;
+        let closeIdx = 0;
+        
+        while (depth > 0 && closeIdx < closes.length) {
+            const nextOpen = opens[openIdx];
+            const nextClose = closes[closeIdx];
+            
+            if (nextOpen !== undefined && nextOpen < nextClose.index) {
+                depth++;
+                openIdx++;
+            } else {
+                depth--;
+                if (depth === 0) {
+                    return remaining.substring(0, nextClose.index + nextClose.length);
+                }
+                closeIdx++;
+            }
+        }
+        
+        return null;
+    }
+
     convertToPDFMake(xslfoXml) {
         const pageMasters = this.parsePageMasters(xslfoXml);
         const pageSequences = this.parsePageSequences(xslfoXml);
@@ -468,10 +584,13 @@ class XSLToPDFMakeConverter {
             primaryMaster.heightInPoints
         );
 
+        // Extract and convert content
+        const content = this.extractContent(xslfoXml);
+
         const pdfMakeDefinition = {
             pageSize: pageSize,
             pageMargins: [0, 0, 0, 0], // Always [0,0,0,0] when using header/footer
-            content: [],
+            content: content,
             _metadata: {
                 pageMasters: pageMasters,
                 primaryMaster: primaryMaster.masterName,
@@ -717,6 +836,13 @@ async function main() {
     const { registerSinglePageSequenceTests } = require('./tests/single-page-sequence.test.js');
     const { registerBlockConverterTests } = require('./tests/block-converter.test.js');
     const { registerRecursiveTraversalTests } = require('./tests/recursive-traversal.test.js');
+    const { registerIntegratedConversionTests } = require('./tests/integrated-conversion.test.js');
+    
+    // Load integrated conversion test data
+    const integratedConversionXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'integrated_conversion.xslt'),
+        'utf-8'
+    );
     
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
@@ -726,6 +852,7 @@ async function main() {
     registerSinglePageSequenceTests(testRunner, converter, singlePageSequenceXML, assert);
     registerBlockConverterTests(testRunner, converter, blockConversionXML, assert);
     registerRecursiveTraversalTests(testRunner, converter, blockConversionXML, assert);
+    registerIntegratedConversionTests(testRunner, converter, integratedConversionXML, assert);
 
     // Run all tests
     await testRunner.runTests();
