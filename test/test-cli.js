@@ -20,10 +20,47 @@ const colors = {
 };
 
 // Simple XML parser for Node.js (no external dependencies)
+// This uses Node.js built-in DOMParser support (available via jsdom-like implementation)
+// For the tests, we'll use a more complete DOM implementation
+let DOMParser;
+
+try {
+    // Try to use xmldom if available (but don't require it)
+    const { DOMParser: XMLDOMParser } = require('@xmldom/xmldom');
+    DOMParser = XMLDOMParser;
+} catch (e) {
+    // Fallback: Use a basic implementation
+    DOMParser = class DOMParser {
+        parseFromString(xmlString, contentType) {
+            // Very basic parser for testing purposes
+            // This is sufficient for our test cases
+            const parser = new SimpleXMLParser();
+            return parser.parse(xmlString);
+        }
+    };
+}
+
 class SimpleXMLParser {
     parse(xmlString) {
         // Create a minimal DOM-like structure
         const doc = {
+            _xmlString: xmlString,
+            
+            querySelector: (selector) => {
+                // Support id selector
+                if (selector.startsWith('[id="') && selector.endsWith('"]')) {
+                    const id = selector.slice(5, -2);
+                    const regex = new RegExp(`<([^>\\s]+)[^>]*\\sid="${id}"[^>]*>([\\s\\S]*?)<\\/\\1>`, 'i');
+                    const match = xmlString.match(regex);
+                    
+                    if (match) {
+                        return this._createElementFromMatch(match[0], match[1]);
+                    }
+                }
+                
+                return null;
+            },
+            
             querySelectorAll: (selector) => {
                 const matches = [];
                 // Simple regex-based parsing for fo:simple-page-master elements
@@ -43,10 +80,222 @@ class SimpleXMLParser {
                 }
                 
                 return matches;
-            }
+            },
+            
+            documentElement: this._parseElement(xmlString)
         };
         
         return doc;
+    }
+    
+    _parseElement(xmlString) {
+        // Parse the root element
+        const tagMatch = xmlString.match(/<([^\s>]+)([^>]*)>/);
+        if (!tagMatch) return null;
+        
+        return this._createElementFromMatch(xmlString, tagMatch[1]);
+    }
+    
+    _createElementFromMatch(xmlString, tagName) {
+        const attributes = this._parseAttributes(xmlString);
+        const content = this._extractContent(xmlString, tagName);
+        const childNodes = this._parseChildren(content);
+        
+        return {
+            nodeName: tagName,
+            nodeType: 1, // ELEMENT_NODE
+            getAttribute: (name) => attributes[name] || null,
+            attributes: attributes,
+            childNodes: childNodes,
+            textContent: this._extractTextContent(content),
+            _xmlString: xmlString
+        };
+    }
+    
+    _parseAttributes(xmlString) {
+        const attributes = {};
+        // Only parse attributes from the opening tag, not from nested elements
+        // Trim whitespace first to handle leading whitespace
+        const trimmed = xmlString.trim();
+        const openingTagMatch = trimmed.match(/^<[^\s>]+([^>]*)>/);
+        if (!openingTagMatch) return attributes;
+        
+        const attributesString = openingTagMatch[1];
+        const attrRegex = /(\w+(?:-\w+)*)="([^"]*)"/g;
+        let match;
+        
+        while ((match = attrRegex.exec(attributesString)) !== null) {
+            attributes[match[1]] = match[2];
+        }
+        
+        return attributes;
+    }
+    
+    _extractContent(xmlString, tagName) {
+        // Properly handle nested tags by counting depth
+        const escapedTagName = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const openingTagRegex = new RegExp(`<${escapedTagName}[^>]*>`, 'i');
+        
+        const openingMatch = xmlString.match(openingTagRegex);
+        if (!openingMatch) return '';
+        
+        const startIndex = openingMatch.index + openingMatch[0].length;
+        let depth = 1;
+        
+        // Find all opening and closing tags
+        const openingTags = [];
+        const closingTags = [];
+        
+        let match;
+        const openRegex = new RegExp(`<${escapedTagName}[^>]*>`, 'gi');
+        while ((match = openRegex.exec(xmlString)) !== null) {
+            if (match.index >= startIndex) {
+                openingTags.push(match.index);
+            }
+        }
+        
+        const closeRegex = new RegExp(`<\\/${escapedTagName}>`, 'gi');
+        while ((match = closeRegex.exec(xmlString)) !== null) {
+            closingTags.push(match.index);
+        }
+        
+        // Find the matching closing tag by counting depth
+        let openIdx = 0;
+        let closeIdx = 0;
+        
+        while (depth > 0 && closeIdx < closingTags.length) {
+            const nextOpen = openingTags[openIdx];
+            const nextClose = closingTags[closeIdx];
+            
+            if (nextOpen !== undefined && nextOpen < nextClose) {
+                depth++;
+                openIdx++;
+            } else {
+                depth--;
+                if (depth === 0) {
+                    // Found the matching closing tag
+                    return xmlString.substring(startIndex, nextClose);
+                }
+                closeIdx++;
+            }
+        }
+        
+        return '';
+    }
+    
+    _parseChildren(content) {
+        const children = [];
+        let currentIndex = 0;
+        
+        // Find all element start positions
+        const elementStarts = [];
+        const elementRegex = /<([\w:]+)([^>\/]*)>/g;
+        let match;
+        
+        while ((match = elementRegex.exec(content)) !== null) {
+            // Skip self-closing tags and closing tags
+            if (!content.substring(match.index, match.index + match[0].length).includes('</')) {
+                elementStarts.push({
+                    index: match.index,
+                    tagName: match[1]
+                });
+            }
+        }
+        
+        // Process each element
+        for (const start of elementStarts) {
+            // Add text before this element
+            const textBefore = content.slice(currentIndex, start.index);
+            const trimmedBefore = textBefore.trim();
+            if (trimmedBefore) {
+                children.push({
+                    nodeType: 3, // TEXT_NODE
+                    textContent: trimmedBefore,
+                    nodeName: '#text'
+                });
+            }
+            
+            // Extract the full element using depth counting
+            const elementXml = this._extractElementAt(content, start.index, start.tagName);
+            if (elementXml) {
+                children.push(this._createElementFromMatch(elementXml, start.tagName));
+                currentIndex = start.index + elementXml.length;
+            }
+        }
+        
+        // Add remaining text
+        const textAfter = content.slice(currentIndex);
+        const trimmedAfter = textAfter.trim();
+        if (trimmedAfter) {
+            children.push({
+                nodeType: 3, // TEXT_NODE
+                textContent: trimmedAfter,
+                nodeName: '#text'
+            });
+        }
+        
+        return children;
+    }
+    
+    _extractElementAt(content, startIndex, tagName) {
+        // Extract a complete element starting at startIndex using depth counting
+        const escapedTagName = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const remaining = content.substring(startIndex);
+        
+        // Find the opening tag
+        const openingRegex = new RegExp(`^<${escapedTagName}[^>]*>`, 'i');
+        const openingMatch = remaining.match(openingRegex);
+        if (!openingMatch) return null;
+        
+        const contentStart = openingMatch[0].length;
+        let depth = 1;
+        let currentPos = contentStart;
+        
+        // Scan through the remaining string counting depth
+        const openRegex = new RegExp(`<${escapedTagName}[^>\/]*>`, 'gi');
+        const closeRegex = new RegExp(`<\\/${escapedTagName}>`, 'gi');
+        
+        const opens = [];
+        const closes = [];
+        
+        let m;
+        openRegex.lastIndex = contentStart;
+        while ((m = openRegex.exec(remaining)) !== null) {
+            opens.push(m.index);
+        }
+        
+        closeRegex.lastIndex = 0;
+        while ((m = closeRegex.exec(remaining)) !== null) {
+            closes.push({ index: m.index, length: m[0].length });
+        }
+        
+        // Find the matching close tag
+        let openIdx = 0;
+        let closeIdx = 0;
+        
+        while (depth > 0 && closeIdx < closes.length) {
+            const nextOpen = opens[openIdx];
+            const nextClose = closes[closeIdx];
+            
+            if (nextOpen !== undefined && nextOpen < nextClose.index) {
+                depth++;
+                openIdx++;
+            } else {
+                depth--;
+                if (depth === 0) {
+                    // Found the matching closing tag
+                    return remaining.substring(0, nextClose.index + nextClose.length);
+                }
+                closeIdx++;
+            }
+        }
+        
+        return null;
+    }
+    
+    _extractTextContent(content) {
+        // Remove all tags and return text
+        return content.replace(/<[^>]*>/g, '').trim();
     }
 }
 
@@ -435,12 +684,39 @@ async function main() {
         'utf-8'
     );
 
+    // Load block conversion test data
+    const blockConversionXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'block_conversion.xslt'),
+        'utf-8'
+    );
+
+    // Load new modules
+    const { traverse, flattenContent } = require('../src/recursive-traversal.js');
+    const BlockConverter = require('../src/block-converter.js');
+    
+    // Make modules available globally for tests (similar to browser)
+    // Set up window-like environment for tests that expect browser globals
+    if (typeof global.window === 'undefined') {
+        global.window = global;
+    }
+    
+    global.RecursiveTraversal = { traverse, flattenContent };
+    global.BlockConverter = BlockConverter;
+    global.DOMParser = DOMParser;
+    
+    // Also set on window for test compatibility
+    global.window.RecursiveTraversal = { traverse, flattenContent };
+    global.window.BlockConverter = BlockConverter;
+    global.window.DOMParser = DOMParser;
+
     // Load all test files
     const { registerPageStructureTests } = require('./tests/page-structure.test.js');
     const { registerUnitConversionTests } = require('./tests/unit-conversion.test.js');
     const { registerMarginParsingTests } = require('./tests/margin-parsing.test.js');
     const { registerPageSequenceTests } = require('./tests/page-sequence.test.js');
     const { registerSinglePageSequenceTests } = require('./tests/single-page-sequence.test.js');
+    const { registerBlockConverterTests } = require('./tests/block-converter.test.js');
+    const { registerRecursiveTraversalTests } = require('./tests/recursive-traversal.test.js');
     
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
@@ -448,6 +724,8 @@ async function main() {
     registerMarginParsingTests(testRunner, converter, emptyPageXML, assert);
     registerPageSequenceTests(testRunner, converter, pageSequenceXML, assert);
     registerSinglePageSequenceTests(testRunner, converter, singlePageSequenceXML, assert);
+    registerBlockConverterTests(testRunner, converter, blockConversionXML, assert);
+    registerRecursiveTraversalTests(testRunner, converter, blockConversionXML, assert);
 
     // Run all tests
     await testRunner.runTests();

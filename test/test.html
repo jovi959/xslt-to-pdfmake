@@ -448,7 +448,7 @@
 
         <div class="content">
             <div class="info-box">
-                <strong>Current Test Focus:</strong> Extracting top-level PDFMake parameters (pageSize and pageMargins) from empty page XSL-FO document.
+                <strong>Current Test Focus:</strong> Recursive block conversion with pluggable converters (TDD approach for block-to-PDFMake transformation)
             </div>
 
             <div id="testResults">
@@ -463,6 +463,11 @@
     <script src="../lib/vfs_fonts.js"></script>
     <script src="../src/xslt-to-pdfmake.js"></script>
     <script src="../src/doc-definition-formatter.js"></script>
+    
+    <!-- Load new modules -->
+    <script src="../src/recursive-traversal.js"></script>
+    <script src="../src/block-converter.js"></script>
+    
     <script src="test-runner.js"></script>
     
     <!-- Load individual test files -->
@@ -471,6 +476,8 @@
     <script src="tests/margin-parsing.test.js"></script>
     <script src="tests/page-sequence.test.js"></script>
     <script src="tests/single-page-sequence.test.js"></script>
+    <script src="tests/block-converter.test.js"></script>
+    <script src="tests/recursive-traversal.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -494,6 +501,7 @@
         let emptyPageXML = null;
         let pageSequenceXML = null;
         let singlePageSequenceXML = null;
+        let blockConversionXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -524,6 +532,7 @@
                 emptyPageXML = await loadTestFile('data/empty_page.xslt');
                 pageSequenceXML = await loadTestFile('data/page_sequence.xslt');
                 singlePageSequenceXML = await loadTestFile('data/single_page_sequence.xslt');
+                blockConversionXML = await loadTestFile('data/block_conversion.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -546,7 +555,9 @@
                 { registerFn: registerUnitConversionTests, xml: emptyPageXML, name: 'empty_page.xslt' },
                 { registerFn: registerMarginParsingTests, xml: emptyPageXML, name: 'empty_page.xslt' },
                 { registerFn: registerPageSequenceTests, xml: pageSequenceXML, name: 'page_sequence.xslt' },
-                { registerFn: registerSinglePageSequenceTests, xml: singlePageSequenceXML, name: 'single_page_sequence.xslt' }
+                { registerFn: registerSinglePageSequenceTests, xml: singlePageSequenceXML, name: 'single_page_sequence.xslt' },
+                { registerFn: registerBlockConverterTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
+                { registerFn: registerRecursiveTraversalTests, xml: blockConversionXML, name: 'block_conversion.xslt' }
             ];
             
             // Register each test suite and map to its data file
