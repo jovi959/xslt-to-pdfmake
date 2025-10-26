@@ -7,6 +7,7 @@
     <script src="lib/pdfmake.min.js"></script>
     <script src="lib/vfs_fonts.js"></script>
     <script src="src/xslt-to-pdfmake.js"></script>
+    <script src="src/doc-definition-formatter.js"></script>
     <style>
         * {
             margin: 0;
@@ -205,6 +206,125 @@
         .info-box li {
             margin: 5px 0;
         }
+
+        .upload-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+        }
+
+        .upload-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-name {
+            display: inline-block;
+            margin-left: 15px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .sample-files {
+            margin-bottom: 20px;
+        }
+
+        .sample-files label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .sample-files select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .sample-files select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-buttons button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .output-area {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+
+        .output-area.visible {
+            display: block;
+        }
+
+        .output-area h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .output-content {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .output-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body>
@@ -276,8 +396,51 @@
                 </div>
 
                 <div class="button-group">
-                    <a href="test.html" class="btn">🧪 Run Unit Tests</a>
+                    <a href="test/test.html" class="btn">🧪 Run Unit Tests</a>
                     <button onclick="showConverterDemo()" class="btn btn-success">▶️ Try Converter Demo</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📁 Process Your XSL-FO File</h2>
+                <p>Upload your own XSL-FO file or select a sample to see the converter in action:</p>
+                
+                <div class="upload-section">
+                    <h3>Choose a File</h3>
+                    
+                    <div class="sample-files">
+                        <label for="sampleFileSelect">Select Sample File:</label>
+                        <select id="sampleFileSelect" onchange="loadSampleFile()">
+                            <option value="">-- Choose a sample --</option>
+                            <option value="test/data/empty_page.xslt">Empty Page (Basic)</option>
+                            <option value="test/data/single_page_sequence.xslt">Single Page Sequence</option>
+                            <option value="test/data/page_sequence.xslt">Page Sequence (Multi-page)</option>
+                            <option value="test/data/simple.xslt">Simple Document</option>
+                            <option value="test/data/table.xslt">Table Document</option>
+                        </select>
+                    </div>
+
+                    <div style="margin: 20px 0; text-align: center; color: #999; font-weight: 600;">OR</div>
+
+                    <div class="file-input-wrapper">
+                        <input type="file" id="xsltFileInput" accept=".xslt,.xml,.fo" onchange="loadUploadedFile()">
+                        <label for="xsltFileInput" class="file-input-label">📤 Upload Your XSL-FO File</label>
+                        <span class="file-name" id="fileName">No file selected</span>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn" id="viewDefinitionBtn" onclick="viewDocumentDefinition()" disabled>
+                            📄 View Document Definition
+                        </button>
+                        <button class="btn btn-success" id="generatePdfBtn" onclick="generatePdfFromFile()" disabled>
+                            📑 Generate PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div class="output-area" id="outputArea">
+                    <h4 id="outputTitle">Output</h4>
+                    <div class="output-content" id="outputContent"></div>
                 </div>
             </div>
 
@@ -520,6 +683,160 @@ const pdfMakeDefinition = converter.convertToPDFMake(xslfoXml);
             
             html += '</div>';
             output.innerHTML = html;
+        }
+
+        // ============================================
+        // FILE UPLOAD/PROCESSING FUNCTIONALITY
+        // ============================================
+        
+        let currentXslfoXml = null;
+        
+        // Load sample file from select dropdown
+        async function loadSampleFile() {
+            const select = document.getElementById('sampleFileSelect');
+            const filePath = select.value;
+            
+            if (!filePath) {
+                resetFileState();
+                return;
+            }
+            
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`Failed to load file: ${response.statusText}`);
+                }
+                
+                currentXslfoXml = await response.text();
+                
+                // Update UI
+                document.getElementById('fileName').textContent = filePath.split('/').pop();
+                document.getElementById('xsltFileInput').value = ''; // Clear upload input
+                enableActionButtons();
+                hideOutput();
+                
+            } catch (error) {
+                showError('Error loading sample file: ' + error.message);
+                resetFileState();
+            }
+        }
+        
+        // Load uploaded file
+        function loadUploadedFile() {
+            const fileInput = document.getElementById('xsltFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                resetFileState();
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                currentXslfoXml = e.target.result;
+                
+                // Update UI
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('sampleFileSelect').value = ''; // Clear sample select
+                enableActionButtons();
+                hideOutput();
+            };
+            
+            reader.onerror = function() {
+                showError('Error reading file');
+                resetFileState();
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        // View document definition
+        function viewDocumentDefinition() {
+            if (!currentXslfoXml) {
+                showError('No file loaded');
+                return;
+            }
+            
+            try {
+                const converter = new XSLToPDFMakeConverter();
+                const pdfDef = converter.convertToPDFMake(currentXslfoXml);
+                
+                // Use shared formatter to convert to displayable code
+                const jsCode = formatDocDefinitionAsCode(pdfDef);
+                
+                showOutputArea('📄 Document Definition', jsCode, false);
+                
+            } catch (error) {
+                showError('Error converting document: ' + error.message);
+            }
+        }
+        
+        // Generate PDF from file
+        function generatePdfFromFile() {
+            if (!currentXslfoXml) {
+                showError('No file loaded');
+                return;
+            }
+            
+            try {
+                const converter = new XSLToPDFMakeConverter();
+                const pdfDef = converter.convertToPDFMake(currentXslfoXml);
+                
+                // Generate PDF with RAW converter output - no modifications
+                // This shows exactly what the converter produces
+                pdfMake.createPdf(pdfDef).open();
+                
+                showOutputArea('✅ PDF Generated', 
+                    'PDF opened in new window/tab.\n\n' +
+                    'Note: This is the RAW converter output. ' +
+                    'If the PDF is blank, it means the converter currently only extracts page layout (not content).', 
+                    true);
+                
+            } catch (error) {
+                showError('Error generating PDF: ' + error.message);
+            }
+        }
+        
+        // Helper functions
+        function enableActionButtons() {
+            document.getElementById('viewDefinitionBtn').disabled = false;
+            document.getElementById('generatePdfBtn').disabled = false;
+        }
+        
+        function resetFileState() {
+            currentXslfoXml = null;
+            document.getElementById('fileName').textContent = 'No file selected';
+            document.getElementById('viewDefinitionBtn').disabled = true;
+            document.getElementById('generatePdfBtn').disabled = true;
+            hideOutput();
+        }
+        
+        function showOutputArea(title, content, isSuccess) {
+            const outputArea = document.getElementById('outputArea');
+            const outputTitle = document.getElementById('outputTitle');
+            const outputContent = document.getElementById('outputContent');
+            
+            outputTitle.textContent = title;
+            outputContent.innerHTML = `<pre>${escapeHtml(content)}</pre>`;
+            outputArea.classList.add('visible');
+            
+            // Scroll to output
+            outputArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function showError(message) {
+            showOutputArea('❌ Error', message, false);
+        }
+        
+        function hideOutput() {
+            document.getElementById('outputArea').classList.remove('visible');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>

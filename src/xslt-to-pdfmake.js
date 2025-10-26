@@ -133,13 +133,29 @@ class XSLToPDFMakeConverter {
                 const pageWidth = master.getAttribute('page-width');
                 const pageHeight = master.getAttribute('page-height');
                 const marginAttr = master.getAttribute('margin');
+                
+                // Individual margin attributes
+                const marginTop = master.getAttribute('margin-top');
+                const marginBottom = master.getAttribute('margin-bottom');
+                const marginLeft = master.getAttribute('margin-left');
+                const marginRight = master.getAttribute('margin-right');
 
                 // Convert dimensions to points
                 const widthInPoints = this.convertToPoints(pageWidth);
                 const heightInPoints = this.convertToPoints(pageHeight);
 
-                // Parse margins
-                const margins = this.parseMargins(marginAttr);
+                // Parse margins - prefer individual attributes over shorthand
+                let margins;
+                if (marginTop || marginBottom || marginLeft || marginRight) {
+                    margins = [
+                        this.convertToPoints(marginLeft || '0'),
+                        this.convertToPoints(marginTop || '0'),
+                        this.convertToPoints(marginRight || '0'),
+                        this.convertToPoints(marginBottom || '0')
+                    ];
+                } else {
+                    margins = this.parseMargins(marginAttr);
+                }
 
                 pageMasterData.push({
                     masterName: masterName,
@@ -160,12 +176,58 @@ class XSLToPDFMakeConverter {
     }
 
     /**
+     * Parse page-sequence-master to determine page flow
+     * @param {string} xslfoXml - XSL-FO XML string
+     * @returns {Object} Page sequence information
+     */
+    parsePageSequences(xslfoXml) {
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xslfoXml, 'text/xml');
+
+            // Find page-sequence-master element
+            const pageSeqMaster = xmlDoc.querySelector('page-sequence-master');
+            
+            if (!pageSeqMaster) {
+                // No page sequence master, return empty sequences
+                return { sequences: [] };
+            }
+
+            const sequences = [];
+
+            // Parse single-page-master-reference elements
+            const singleRefs = pageSeqMaster.querySelectorAll('single-page-master-reference');
+            singleRefs.forEach(ref => {
+                sequences.push({
+                    type: 'single',
+                    masterRef: ref.getAttribute('master-reference')
+                });
+            });
+
+            // Parse repeatable-page-master-reference elements
+            const repeatableRefs = pageSeqMaster.querySelectorAll('repeatable-page-master-reference');
+            repeatableRefs.forEach(ref => {
+                sequences.push({
+                    type: 'repeatable',
+                    masterRef: ref.getAttribute('master-reference')
+                });
+            });
+
+            return { sequences };
+        } catch (error) {
+            console.error('Error parsing page sequences:', error);
+            return { sequences: [] };
+        }
+    }
+
+    /**
      * Convert XSL-FO document to PDFMake definition (top-level parameters only)
      * @param {string} xslfoXml - XSL-FO XML string
      * @returns {Object} PDFMake document definition with pageSize and pageMargins
      */
     convertToPDFMake(xslfoXml) {
         const pageMasters = this.parsePageMasters(xslfoXml);
+        const pageSequences = this.parsePageSequences(xslfoXml);
 
         if (pageMasters.length === 0) {
             throw new Error('No page masters found in XSL-FO document');
@@ -180,14 +242,110 @@ class XSLToPDFMakeConverter {
             primaryMaster.heightInPoints
         );
 
-        // Create PDFMake definition (only pageSize and pageMargins)
+        // Create PDFMake definition
         const pdfMakeDefinition = {
             pageSize: pageSize,
-            pageMargins: primaryMaster.margins,
+            pageMargins: [0, 0, 0, 0], // Always [0,0,0,0] when using header/footer
             content: []
         };
 
+        // Generate header/footer based on page sequences
+        if (pageSequences.sequences.length >= 2) {
+            // Multiple sequences - use functions
+            pdfMakeDefinition.header = this.generateHeaderFunction(pageSequences, pageMasters);
+            pdfMakeDefinition.footer = this.generateFooterFunction(pageSequences, pageMasters);
+        } else if (pageSequences.sequences.length === 1) {
+            // Single sequence - use static objects
+            const masterRef = pageSequences.sequences[0].masterRef;
+            const master = pageMasters.find(m => m.masterName === masterRef);
+            if (master) {
+                pdfMakeDefinition.header = {
+                    margin: [master.margins[0], master.margins[1], master.margins[2], 0],
+                    text: ''
+                };
+                pdfMakeDefinition.footer = {
+                    margin: [master.margins[0], 0, master.margins[2], master.margins[3]],
+                    text: ''
+                };
+            }
+        } else {
+            // No sequences - use primary master margins directly (legacy behavior)
+            pdfMakeDefinition.pageMargins = primaryMaster.margins;
+        }
+
         return pdfMakeDefinition;
+    }
+
+    /**
+     * Generate header function for multi-sequence documents
+     * @param {Object} pageSequences - Parsed page sequences
+     * @param {Array} pageMasters - Parsed page masters
+     * @returns {Function} Header function
+     */
+    generateHeaderFunction(pageSequences, pageMasters) {
+        const sequences = pageSequences.sequences;
+        
+        // Get the actual margin values for each sequence
+        const firstMaster = pageMasters.find(m => m.masterName === sequences[0]?.masterRef);
+        const restMaster = pageMasters.find(m => m.masterName === sequences[1]?.masterRef);
+        
+        // Extract margin values to bake into the function
+        const firstMargins = firstMaster ? firstMaster.margins : [0, 0, 0, 0];
+        const restMargins = restMaster ? restMaster.margins : [0, 0, 0, 0];
+        
+        // Create function with hardcoded values (not closures)
+        const functionBody = `
+            if (currentPage === 1) {
+                return {
+                    margin: [${firstMargins[0]}, ${firstMargins[1]}, ${firstMargins[2]}, 0],
+                    text: ''
+                };
+            }
+            if (currentPage > 1 && currentPage <= pageCount) {
+                return {
+                    margin: [${restMargins[0]}, ${restMargins[1]}, ${restMargins[2]}, 0],
+                    text: ''
+                };
+            }
+        `;
+        
+        return new Function('currentPage', 'pageCount', functionBody);
+    }
+
+    /**
+     * Generate footer function for multi-sequence documents
+     * @param {Object} pageSequences - Parsed page sequences
+     * @param {Array} pageMasters - Parsed page masters
+     * @returns {Function} Footer function
+     */
+    generateFooterFunction(pageSequences, pageMasters) {
+        const sequences = pageSequences.sequences;
+        
+        // Get the actual margin values for each sequence
+        const firstMaster = pageMasters.find(m => m.masterName === sequences[0]?.masterRef);
+        const restMaster = pageMasters.find(m => m.masterName === sequences[1]?.masterRef);
+        
+        // Extract margin values to bake into the function
+        const firstMargins = firstMaster ? firstMaster.margins : [0, 0, 0, 0];
+        const restMargins = restMaster ? restMaster.margins : [0, 0, 0, 0];
+        
+        // Create function with hardcoded values (not closures)
+        const functionBody = `
+            if (currentPage === 1) {
+                return {
+                    margin: [${firstMargins[0]}, 0, ${firstMargins[2]}, ${firstMargins[3]}],
+                    text: ''
+                };
+            }
+            if (currentPage > 1 && currentPage <= pageCount) {
+                return {
+                    margin: [${restMargins[0]}, 0, ${restMargins[2]}, ${restMargins[3]}],
+                    text: ''
+                };
+            }
+        `;
+        
+        return new Function('currentPage', 'pageCount', functionBody);
     }
 }
 

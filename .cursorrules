@@ -1,0 +1,448 @@
+# XSLT to PDFMake Converter - Cursor Rules
+
+## Project Structure
+
+- **Main converter**: `src/xslt-to-pdfmake.js` (browser + Node.js compatible)
+- **Feature modules**: `src/*.js` (separate files for each feature/functionality)
+- **Utilities**: `src/doc-definition-formatter.js` (shared utilities)
+- **CLI test runner**: `test/test-cli.js`
+- **Browser test runner**: `test/test.html`
+- **Test files**: `test/tests/*.test.js`
+- **Sample data**: `test/data/*.xslt`
+
+---
+
+## Code Organization Rules ⚠️ CRITICAL
+
+### **DO NOT add functions directly to `src/xslt-to-pdfmake.js`**
+
+To keep the codebase maintainable and prevent file bloat, **ALL new features MUST be created in separate module files**.
+
+### When Adding New Functionality
+
+**1. Create a New Module File:**
+```javascript
+// src/{feature-name}.js
+
+/**
+ * {Feature Name} Module
+ * {Description of what this module does}
+ */
+
+/**
+ * {Function description}
+ * @param {Type} paramName - Description
+ * @returns {Type} Description
+ */
+function featureFunctionName(param) {
+    // Implementation
+    return result;
+}
+
+// Export for both browser and Node.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { featureFunctionName };
+}
+if (typeof window !== 'undefined') {
+    window.featureFunctionName = featureFunctionName;
+}
+```
+
+**2. Import in `src/xslt-to-pdfmake.js`:**
+```html
+<!-- In HTML files that use the converter: -->
+<script src="src/{feature-name}.js"></script>
+<script src="src/xslt-to-pdfmake.js"></script>
+```
+
+```javascript
+// In Node.js/CLI (test-cli.js):
+const { featureFunctionName } = require('../src/{feature-name}.js');
+```
+
+**3. Use in Converter Class:**
+```javascript
+class XSLToPDFMakeConverter {
+    someMethod() {
+        // Use the imported function
+        const result = featureFunctionName(data);
+        return result;
+    }
+}
+```
+
+### File Size Guidelines
+
+- **`src/xslt-to-pdfmake.js`**: Core converter class only (ideally < 500 lines)
+- **Feature modules**: Keep focused on single responsibility (< 200 lines each)
+- **If a method exceeds 50 lines**: Consider extracting to separate module
+
+### Examples of What Should Be Separate Modules
+
+✅ **Create separate files for:**
+- Complex parsing logic (e.g., `src/page-sequence-parser.js`)
+- Formatting/transformation utilities (e.g., `src/doc-definition-formatter.js`)
+- Unit conversion libraries (e.g., `src/unit-converter.js`)
+- Content extraction (e.g., `src/content-parser.js`)
+- Table processing (e.g., `src/table-converter.js`)
+- Font handling (e.g., `src/font-parser.js`)
+
+❌ **Do NOT add directly to `xslt-to-pdfmake.js`:**
+- Large parsing functions
+- Complex transformation logic
+- Utility functions that could be reused
+- Feature-specific code
+
+### Module Template
+
+```javascript
+/**
+ * {Module Name}
+ * {Purpose and description}
+ */
+
+// Private helper functions (not exported)
+function privateHelper(data) {
+    return processed;
+}
+
+// Public API functions (exported)
+function publicFunction(input) {
+    const result = privateHelper(input);
+    return result;
+}
+
+// Export for both environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { 
+        publicFunction
+        // Add other exports as needed
+    };
+}
+if (typeof window !== 'undefined') {
+    window.ModuleName = { publicFunction };
+    // Or individual exports:
+    // window.publicFunction = publicFunction;
+}
+```
+
+---
+
+## How to Add a New Test
+
+### 1. Create Test File: `test/tests/{feature-name}.test.js`
+
+```javascript
+function register{FeatureName}Tests(testRunner, converter, emptyPageXML, assert) {
+    testRunner.addTest('Should {describe expected behavior}', () => {
+        const testData = '...';
+        const result = converter.someMethod(testData);
+        assert.ok(result, 'Should return a result');
+        assert.equal(result.property, expectedValue, 'Property should match expected value');
+    });
+}
+
+// Export for both browser and Node.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { register{FeatureName}Tests };
+}
+if (typeof window !== 'undefined') {
+    window.register{FeatureName}Tests = register{FeatureName}Tests;
+}
+```
+
+### 2. Update `test/test-definitions.js`
+
+```javascript
+if (typeof register{FeatureName}Tests === 'function') {
+    register{FeatureName}Tests(testRunner, converter, emptyPageXML, assert);
+}
+```
+
+### 3. Update `test/test-cli.js` (around line 290)
+
+```javascript
+const { register{FeatureName}Tests } = require('./tests/{feature-name}.test.js');
+register{FeatureName}Tests(testRunner, converter, emptyPageXML, assert);
+```
+
+### 4. Update `test/test.html`
+
+```html
+<script src="tests/{feature-name}.test.js"></script>
+```
+
+### 5. Map Test Data in `test/test.html` (if using different sample data)
+
+If your test uses a different XSL-FO sample file (not `empty_page.xslt`), add it to the `testSuites` array in `registerTestsWrapper()`:
+
+```javascript
+// Load the data file first (in loadTestData function)
+{featureName}XML = await loadTestFile('data/{feature-name}.xslt');
+
+// Then add to testSuites array
+const testSuites = [
+    { registerFn: registerPageStructureTests, xml: emptyPageXML, name: 'empty_page.xslt' },
+    // ... other tests ...
+    { registerFn: register{FeatureName}Tests, xml: {featureName}XML, name: '{feature-name}.xslt' }
+];
+```
+
+---
+
+## How to Add Sample Test Data
+
+### 1. Create XSL-FO file: `test/data/{description}.xslt`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="MyTest" page-width="8.5in" page-height="11in" margin="1in">
+      <fo:region-body margin="0.5in"/>
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+  <fo:page-sequence master-reference="MyTest">
+    <fo:flow flow-name="xsl-region-body">
+      <fo:block>Your test content here</fo:block>
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>
+```
+
+### 2. Load in CLI Runner
+
+```javascript
+const myFeatureXML = fs.readFileSync(path.join(__dirname, 'data', 'my_feature.xslt'), 'utf-8');
+register{FeatureName}Tests(testRunner, converter, myFeatureXML, assert);
+```
+
+---
+
+## How to Add a New Feature to Converter
+
+### 1. Add Method to `src/xslt-to-pdfmake.js`
+
+```javascript
+/**
+ * Your new method
+ * @param {string} input - Description
+ * @returns {any} Description
+ */
+yourNewMethod(input) {
+    // Implementation
+    return result;
+}
+```
+
+### 2. Update CLI Version (if needed)
+
+If using browser-specific APIs (like DOMParser), add Node.js version in `test/test-cli.js` (lines 54-183).
+
+### 3. Add Tests
+
+Create test file following "How to Add a New Test" steps above.
+
+---
+
+## Assertion Methods
+
+```javascript
+assert.ok(value, message)                              // Truthy check
+assert.equal(actual, expected, message)                 // Strict equality (===)
+assert.deepEqual(actual, expected, message)             // JSON comparison
+assert.approximately(actual, expected, tolerance, msg)  // Numeric tolerance
+```
+
+---
+
+## Key Converter Methods
+
+```javascript
+converter.convertToPoints(value)                      // "8.5in" → 612
+converter.parseMargins(marginStr)                     // "1in 2in" → [144, 72, 144, 72]
+converter.determinePageSize(width, height)            // 612, 792 → "LETTER"
+converter.parsePageMasters(xslfoXml)                  // Returns array of page master objects
+converter.convertToPDFMake(xslfoXml)                  // Returns PDFMake document definition
+```
+
+---
+
+## Naming Conventions
+
+- Test files: `{feature-name}.test.js` (kebab-case)
+- Test functions: `register{FeatureName}Tests` (PascalCase)
+- Test descriptions: Start with "Should {describe behavior}"
+- Sample data: `{description}.xslt` (lowercase with underscores)
+
+---
+
+## Running Tests
+
+```bash
+node test/test-cli.js
+```
+
+Or open `test/test.html` in browser.
+
+---
+
+## Quick Reference Checklist
+
+### Adding a New Test Suite
+- [ ] Create `test/tests/{feature-name}.test.js`
+- [ ] Implement `register{FeatureName}Tests` function
+- [ ] Export for browser and Node.js
+- [ ] Add to `test/test-definitions.js` registerTests function
+- [ ] Add require/import in `test/test-cli.js` (around line 290)
+- [ ] Add script tag in `test/test.html`
+- [ ] **If using custom sample data:** Add to `testSuites` array in `test/test.html` `registerTestsWrapper()`
+- [ ] Run tests: `node test/test-cli.js`
+
+### Adding Sample Data
+- [ ] Create `test/data/{description}.xslt`
+- [ ] Ensure valid XSL-FO XML format
+- [ ] Load in browser test runner (`test/test.html` `loadTestData()` function)
+- [ ] Load in CLI test runner (`test/test-cli.js` main function)
+- [ ] Map to test suite in `test/test.html` `testSuites` array
+- [ ] Reference in tests
+
+### Adding a Converter Feature
+- [ ] **Create new module file** `src/{feature-name}.js` (DO NOT add to xslt-to-pdfmake.js)
+- [ ] Implement feature with proper exports for browser 
+- [ ] Add JSDoc documentation
+- [ ] Import module in `src/xslt-to-pdfmake.js` (or use directly)
+- [ ] Update HTML files to load the new module script
+- [ ] Update CLI version (test-cli.js) to require the module if needed
+- [ ] Create test suite for new feature
+- [ ] Verify browser and CLI tests pass
+
+---
+
+## Example: Adding a New Feature Module
+
+Let's say you want to add "table parsing" functionality:
+
+**1. Create module** (`src/table-parser.js`):
+```javascript
+/**
+ * Table Parser Module
+ * Parses XSL-FO table elements to PDFMake table definitions
+ */
+
+function parseTable(tableElement) {
+    // Implementation
+    return {
+        table: {
+            body: [/* rows */]
+        }
+    };
+}
+
+function parseTableRow(rowElement) {
+    // Implementation
+    return [/* cells */];
+}
+
+// Export
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { parseTable, parseTableRow };
+}
+if (typeof window !== 'undefined') {
+    window.TableParser = { parseTable, parseTableRow };
+}
+```
+
+**2. Use in converter** (`src/xslt-to-pdfmake.js`):
+```javascript
+class XSLToPDFMakeConverter {
+    convertContent(xslfoXml) {
+        // Use the table parser
+        const tables = TableParser.parseTable(tableElement);
+        return tables;
+    }
+}
+```
+
+**3. Update HTML files**:
+```html
+<script src="src/table-parser.js"></script>
+<script src="src/xslt-to-pdfmake.js"></script>
+```
+
+**4. Update CLI if needed** (`test/test-cli.js`):
+```javascript
+const { parseTable } = require('../src/table-parser.js');
+```
+
+**5. Create tests** (`test/tests/table-parsing.test.js`)
+
+Done! ✅ The main converter file stays clean and focused.
+
+---
+
+## Example: Complete Test Addition
+
+Let's say you want to test a new "font parsing" feature:
+
+**1. Create test file** (`test/tests/font-parsing.test.js`):
+```javascript
+function registerFontParsingTests(testRunner, converter, emptyPageXML, assert) {
+    testRunner.addTest('Should parse font-family attribute', () => {
+        const fontFamily = converter.parseFontFamily('Arial, sans-serif');
+        assert.equal(fontFamily, 'Arial');
+    });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { registerFontParsingTests };
+}
+if (typeof window !== 'undefined') {
+    window.registerFontParsingTests = registerFontParsingTests;
+}
+```
+
+**2. Update test-definitions.js**:
+```javascript
+if (typeof registerFontParsingTests === 'function') {
+    registerFontParsingTests(testRunner, converter, emptyPageXML, assert);
+}
+```
+
+**3. Update test-cli.js**:
+```javascript
+const { registerFontParsingTests } = require('./tests/font-parsing.test.js');
+// ...
+registerFontParsingTests(testRunner, converter, emptyPageXML, assert);
+```
+
+**4. Update test.html**:
+```html
+<script src="tests/font-parsing.test.js"></script>
+```
+
+**5. Add method to converter** (`src/xslt-to-pdfmake.js`):
+```javascript
+/**
+ * Parse font-family string
+ * @param {string} fontFamily - CSS font-family value
+ * @returns {string} Primary font name
+ */
+parseFontFamily(fontFamily) {
+    if (!fontFamily) return 'Helvetica';
+    return fontFamily.split(',')[0].trim();
+}
+```
+
+Done! Run `node test/test-cli.js` to verify.
+
+---
+
+## Summary
+
+This document provides everything needed to add tests, samples, and features without searching through multiple files. Follow the patterns established in existing test files for consistency.
+
+For questions or issues, refer to existing test files as working examples:
+- `test/tests/page-structure.test.js` - Document structure tests
+- `test/tests/unit-conversion.test.js` - Utility function tests  
+- `test/tests/margin-parsing.test.js` - Parsing logic tests

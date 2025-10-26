@@ -23,6 +23,12 @@ function registerTests(testRunner, converter, emptyPageXML, assert) {
     if (typeof registerMarginParsingTests === 'function') {
         registerMarginParsingTests(testRunner, converter, emptyPageXML, assert);
     }
+    if (typeof registerPageSequenceTests === 'function') {
+        registerPageSequenceTests(testRunner, converter, emptyPageXML, assert);
+    }
+    if (typeof registerSinglePageSequenceTests === 'function') {
+        registerSinglePageSequenceTests(testRunner, converter, emptyPageXML, assert);
+    }
 }
 
 // Export for use in both browser and Node.js
