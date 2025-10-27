@@ -472,6 +472,8 @@
     <!-- Load new modules -->
     <script src="../src/recursive-traversal.js"></script>
     <script src="../src/block-converter.js"></script>
+    <script src="../src/preprocessor.js"></script>
+    <script src="../src/block-inheritance-config.js"></script>
     
     <script src="test-runner.js"></script>
     
@@ -486,6 +488,7 @@
     <script src="tests/nested-block-styling.test.js"></script>
     <script src="tests/inline-converter.test.js"></script>
     <script src="tests/integrated-conversion.test.js"></script>
+    <script src="tests/inheritance-preprocessor.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -512,6 +515,7 @@
         let blockConversionXML = null;
         let inlineConversionXML = null;
         let integratedConversionXML = null;
+        let inheritanceExamplesXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -545,6 +549,7 @@
                 blockConversionXML = await loadTestFile('data/block_conversion.xslt');
                 inlineConversionXML = await loadTestFile('data/inline_conversion.xslt');
                 integratedConversionXML = await loadTestFile('data/integrated_conversion.xslt');
+                inheritanceExamplesXML = await loadTestFile('data/inheritance_examples.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -572,7 +577,8 @@
                 { registerFn: registerRecursiveTraversalTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
                 { registerFn: registerNestedBlockStylingTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
                 { registerFn: registerInlineConverterTests, xml: inlineConversionXML, name: 'inline_conversion.xslt' },
-                { registerFn: registerIntegratedConversionTests, xml: integratedConversionXML, name: 'integrated_conversion.xslt' }
+                { registerFn: registerIntegratedConversionTests, xml: integratedConversionXML, name: 'integrated_conversion.xslt' },
+                { registerFn: registerInheritancePreprocessorTests, xml: inheritanceExamplesXML, name: 'inheritance_examples.xslt' }
             ];
             
             // Register each test suite and map to its data file

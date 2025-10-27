@@ -27,7 +27,43 @@ let DOMParser;
 try {
     // Try to use xmldom if available (but don't require it)
     const { DOMParser: XMLDOMParser } = require('@xmldom/xmldom');
-    DOMParser = XMLDOMParser;
+    
+    // Wrap @xmldom/xmldom to add querySelector support for tests
+    DOMParser = class DOMParser {
+        parseFromString(xmlString, contentType) {
+            const parser = new XMLDOMParser();
+            const doc = parser.parseFromString(xmlString, contentType);
+            
+            // Add querySelector support (needed for tests)
+            if (!doc.querySelector) {
+                doc.querySelector = function(selector) {
+                    // Support id selector: [id="value"]
+                    if (selector.startsWith('[id="') && selector.endsWith('"]')) {
+                        const id = selector.slice(5, -2);
+                        
+                        // Recursively search for element with matching id
+                        function findById(node) {
+                            if (node.nodeType === 1 && node.getAttribute && node.getAttribute('id') === id) {
+                                return node;
+                            }
+                            if (node.childNodes) {
+                                for (let i = 0; i < node.childNodes.length; i++) {
+                                    const found = findById(node.childNodes[i]);
+                                    if (found) return found;
+                                }
+                            }
+                            return null;
+                        }
+                        
+                        return findById(doc.documentElement);
+                    }
+                    return null;
+                };
+            }
+            
+            return doc;
+        }
+    };
 } catch (e) {
     // Fallback: Use a basic implementation
     DOMParser = class DOMParser {
@@ -820,6 +856,8 @@ async function main() {
     // Load new modules
     const { traverse, flattenContent } = require('../src/recursive-traversal.js');
     const BlockConverter = require('../src/block-converter.js');
+    const InheritancePreprocessor = require('../src/preprocessor.js');
+    const BlockInheritanceConfig = require('../src/block-inheritance-config.js');
     
     // Make modules available globally for tests (similar to browser)
     // Set up window-like environment for tests that expect browser globals
@@ -834,7 +872,10 @@ async function main() {
     // Also set on window for test compatibility
     global.window.RecursiveTraversal = { traverse, flattenContent };
     global.window.BlockConverter = BlockConverter;
+    global.window.InheritancePreprocessor = InheritancePreprocessor;
+    global.window.BlockInheritanceConfig = BlockInheritanceConfig;
     global.window.DOMParser = DOMParser;
+    global.SimpleXMLParser = SimpleXMLParser; // Make SimpleXMLParser available to preprocessor
 
     // Load all test files
     const { registerPageStructureTests } = require('./tests/page-structure.test.js');
@@ -847,6 +888,7 @@ async function main() {
     const { registerNestedBlockStylingTests } = require('./tests/nested-block-styling.test.js');
     const { registerInlineConverterTests } = require('./tests/inline-converter.test.js');
     const { registerIntegratedConversionTests } = require('./tests/integrated-conversion.test.js');
+    const { registerInheritancePreprocessorTests } = require('./tests/inheritance-preprocessor.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -865,6 +907,7 @@ async function main() {
     registerNestedBlockStylingTests(testRunner, converter, blockConversionXML, assert);
     registerInlineConverterTests(testRunner, converter, inlineConversionXML, assert);
     registerIntegratedConversionTests(testRunner, converter, integratedConversionXML, assert);
+    registerInheritancePreprocessorTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests
     await testRunner.runTests();

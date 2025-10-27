@@ -172,6 +172,57 @@ function parseMargin(margin) {
 }
 
 /**
+ * Parses font-family attribute
+ * @param {string} fontFamily - Font family string (e.g., "Arial", "Helvetica, Arial, sans-serif")
+ * @returns {string|undefined} Font family name or undefined
+ */
+function parseFontFamily(fontFamily) {
+    if (!fontFamily) return undefined;
+    
+    // For PDFMake, we typically use the first font in the stack
+    // or the full string if it's a single font
+    const trimmed = fontFamily.trim();
+    
+    // If it contains commas, take the first font
+    if (trimmed.includes(',')) {
+        return trimmed.split(',')[0].trim().replace(/['"]/g, '');
+    }
+    
+    return trimmed.replace(/['"]/g, '');
+}
+
+/**
+ * Parses background-color attribute
+ * @param {string} bgColor - Background color value
+ * @returns {string|undefined} Color string or undefined
+ */
+function parseBackgroundColor(bgColor) {
+    return parseColor(bgColor);
+}
+
+/**
+ * Parses line-height attribute
+ * @param {string} lineHeight - Line height value (e.g., "1.5", "2em", "20px")
+ * @returns {number|undefined} Line height value or undefined
+ */
+function parseLineHeight(lineHeight) {
+    if (!lineHeight) return undefined;
+    
+    // If it's a unitless number, return as-is
+    if (/^\d+(\.\d+)?$/.test(lineHeight)) {
+        return parseFloat(lineHeight);
+    }
+    
+    // For now, extract numeric value (PDFMake uses numeric line height)
+    const match = lineHeight.match(/^([\d.]+)/);
+    if (match) {
+        return parseFloat(match[1]);
+    }
+    
+    return undefined;
+}
+
+/**
  * Parses shorthand border attribute (e.g., "2px solid black")
  * @param {string} borderStr - Border shorthand string
  * @returns {Object} Object with width, style, and color properties
@@ -281,6 +332,9 @@ function convertInline(node, children, traverse) {
     const fontSize = parseFontSize(node.getAttribute('font-size'));
     const color = parseColor(node.getAttribute('color'));
     const alignment = parseAlignment(node.getAttribute('text-align'));
+    const font = parseFontFamily(node.getAttribute('font-family'));
+    const background = parseBackgroundColor(node.getAttribute('background-color'));
+    const lineHeight = parseLineHeight(node.getAttribute('line-height'));
 
     // Build the text content
     let textContent;
@@ -330,6 +384,9 @@ function convertInline(node, children, traverse) {
     if (fontSize !== undefined) result.fontSize = fontSize;
     if (color !== undefined) result.color = color;
     if (alignment !== undefined) result.alignment = alignment;
+    if (font !== undefined) result.font = font;
+    if (background !== undefined) result.background = background;
+    if (lineHeight !== undefined) result.lineHeight = lineHeight;
 
     // If result only has text property and it's a string, return just the string
     if (Object.keys(result).length === 1 && typeof result.text === 'string') {
@@ -372,6 +429,9 @@ function convertBlock(node, children, traverse) {
     const fontSize = parseFontSize(node.getAttribute('font-size'));
     const color = parseColor(node.getAttribute('color'));
     const alignment = parseAlignment(node.getAttribute('text-align'));
+    const font = parseFontFamily(node.getAttribute('font-family'));
+    const background = parseBackgroundColor(node.getAttribute('background-color'));
+    const lineHeight = parseLineHeight(node.getAttribute('line-height'));
 
     // Build the text content
     let textContent;
@@ -395,6 +455,9 @@ function convertBlock(node, children, traverse) {
                     if (fontSize !== undefined) styledText.fontSize = fontSize;
                     if (color !== undefined) styledText.color = color;
                     if (alignment !== undefined) styledText.alignment = alignment;
+                    if (font !== undefined) styledText.font = font;
+                    if (background !== undefined) styledText.background = background;
+                    if (lineHeight !== undefined) styledText.lineHeight = lineHeight;
                     
                     // If no styling, return string as-is
                     return Object.keys(styledText).length > 1 ? styledText : child;
@@ -484,6 +547,9 @@ function convertBlock(node, children, traverse) {
     if (fontSize !== undefined) result.fontSize = fontSize;
     if (color !== undefined) result.color = color;
     if (alignment !== undefined) result.alignment = alignment;
+    if (font !== undefined) result.font = font;
+    if (background !== undefined) result.background = background;
+    if (lineHeight !== undefined) result.lineHeight = lineHeight;
     if (margin !== undefined) result.margin = margin;
 
     // If result only has text property and it's a string, return just the string
@@ -506,6 +572,9 @@ if (typeof module !== 'undefined' && module.exports) {
         parseFontSize,
         parseColor,
         parseAlignment,
+        parseFontFamily,
+        parseBackgroundColor,
+        parseLineHeight,
         parseNumericValue,
         parseBorderWidth,
         parseBorderShorthand,
@@ -525,6 +594,9 @@ if (typeof window !== 'undefined') {
         parseFontSize,
         parseColor,
         parseAlignment,
+        parseFontFamily,
+        parseBackgroundColor,
+        parseLineHeight,
         parseNumericValue,
         parseBorderWidth,
         parseBorderShorthand,

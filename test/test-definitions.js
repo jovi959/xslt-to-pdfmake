@@ -44,6 +44,9 @@ if (typeof registerInlineConverterTests === 'function') {
 if (typeof registerIntegratedConversionTests === 'function') {
     registerIntegratedConversionTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerInheritancePreprocessorTests === 'function') {
+    registerInheritancePreprocessorTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

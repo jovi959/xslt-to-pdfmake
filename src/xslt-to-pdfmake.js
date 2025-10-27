@@ -304,11 +304,42 @@ class XSLToPDFMakeConverter {
     /**
      * Convert XSL-FO document to PDFMake definition
      * @param {string} xslfoXml - XSL-FO XML string
+     * @param {Object} options - Optional conversion options
+     * @param {boolean} options.skipPreprocessing - Skip inheritance preprocessing (default: false)
      * @returns {Object} PDFMake document definition with pageSize, pageMargins, and content
      */
-    convertToPDFMake(xslfoXml) {
-        const pageMasters = this.parsePageMasters(xslfoXml);
-        const pageSequences = this.parsePageSequences(xslfoXml);
+    convertToPDFMake(xslfoXml, options = {}) {
+        // Step 1: Apply preprocessing (inheritance, etc.)
+        let processedXml = xslfoXml;
+        
+        if (!options.skipPreprocessing) {
+            // Get preprocessor functions
+            const preprocessor = typeof window !== 'undefined' 
+                ? window.InheritancePreprocessor 
+                : require('./preprocessor.js');
+            
+            const blockConfig = typeof window !== 'undefined'
+                ? window.BlockInheritanceConfig
+                : require('./block-inheritance-config.js');
+            
+            if (preprocessor && blockConfig) {
+                const config = blockConfig.getBlockInheritanceConfig 
+                    ? blockConfig.getBlockInheritanceConfig()
+                    : blockConfig.BLOCK_INHERITANCE_CONFIG;
+                
+                if (preprocessor.preprocessXML) {
+                    processedXml = preprocessor.preprocessXML(processedXml, {
+                        inheritanceConfig: config
+                    });
+                } else if (preprocessor.preprocessInheritance) {
+                    processedXml = preprocessor.preprocessInheritance(processedXml, config);
+                }
+            }
+        }
+        
+        // Step 2: Continue with normal conversion
+        const pageMasters = this.parsePageMasters(processedXml);
+        const pageSequences = this.parsePageSequences(processedXml);
 
         if (pageMasters.length === 0) {
             throw new Error('No page masters found in XSL-FO document');
@@ -323,8 +354,8 @@ class XSLToPDFMakeConverter {
             primaryMaster.heightInPoints
         );
 
-        // Extract and convert content
-        const content = this.extractContent(xslfoXml);
+        // Extract and convert content (use preprocessed XML)
+        const content = this.extractContent(processedXml);
 
         // Create PDFMake definition
         const pdfMakeDefinition = {

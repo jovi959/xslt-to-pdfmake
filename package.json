@@ -16,6 +16,8 @@
     "tdd"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@xmldom/xmldom": "0.8.11"
+  }
 }
-
