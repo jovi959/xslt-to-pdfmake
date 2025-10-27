@@ -265,47 +265,24 @@ function hasBorder(node) {
 }
 
 /**
- * Trims edge whitespace from children array (HTML-like normalization)
- * - Trim leading space from first text child (touching parent's opening tag)
- * - Trim trailing space from last text child (touching parent's closing tag)
- * - Preserve all internal spaces between siblings
- * 
- * @param {Array} children - Array of child content (strings and objects)
- * @returns {Array} Children with edge spaces trimmed
+ * Import whitespace utilities from centralized module
+ * All whitespace normalization logic lives in whitespace-utils.js
  */
-function trimEdgeSpaces(children) {
-    if (!children || children.length === 0) {
-        return children;
-    }
-    
-    const trimmed = [...children];
-    
-    // Trim leading space from first string child
-    for (let i = 0; i < trimmed.length; i++) {
-        if (typeof trimmed[i] === 'string') {
-            trimmed[i] = trimmed[i].replace(/^\s+/, '');
-            // If it becomes empty, remove it
-            if (trimmed[i] === '') {
-                trimmed.splice(i, 1);
-                i--;
-            }
-            break; // Only trim the first text node
-        }
-    }
-    
-    // Trim trailing space from last string child
-    for (let i = trimmed.length - 1; i >= 0; i--) {
-        if (typeof trimmed[i] === 'string') {
-            trimmed[i] = trimmed[i].replace(/\s+$/, '');
-            // If it becomes empty, remove it
-            if (trimmed[i] === '') {
-                trimmed.splice(i, 1);
-            }
-            break; // Only trim the last text node
-        }
-    }
-    
-    return trimmed;
+let WhitespaceUtils;
+if (typeof window !== 'undefined' && window.WhitespaceUtils) {
+    // Browser environment
+    WhitespaceUtils = window.WhitespaceUtils;
+} else if (typeof require === 'function') {
+    // Node.js environment
+    WhitespaceUtils = require('./whitespace-utils.js');
+}
+
+// Validate WhitespaceUtils is available
+if (!WhitespaceUtils) {
+    throw new Error(
+        'WhitespaceUtils not loaded! ' +
+        'Make sure whitespace-utils.js is loaded before block-converter.js in your HTML file.'
+    );
 }
 
 /**
@@ -322,8 +299,11 @@ function convertInline(node, children, traverse) {
         return null;
     }
 
-    // Apply HTML-like edge whitespace trimming
-    children = trimEdgeSpaces(children);
+    // Apply HTML-like whitespace normalization (all 3 steps in one call)
+    // 1. Normalize whitespace (newlines → spaces, collapse multiple)
+    // 2. Trim edge spaces
+    // 3. Insert spaces between consecutive inline elements
+    children = WhitespaceUtils.normalizeChildren(children);
 
     // Extract and convert attributes
     const bold = parseFontWeight(node.getAttribute('font-weight'));
@@ -419,8 +399,11 @@ function convertBlock(node, children, traverse) {
         return null;
     }
 
-    // Apply HTML-like edge whitespace trimming
-    children = trimEdgeSpaces(children);
+    // Apply HTML-like whitespace normalization (all 3 steps in one call)
+    // 1. Normalize whitespace (newlines → spaces, collapse multiple)
+    // 2. Trim edge spaces
+    // 3. Insert spaces between consecutive inline elements
+    children = WhitespaceUtils.normalizeChildren(children);
 
     // Extract and convert attributes first (we'll need these to style text children)
     const bold = parseFontWeight(node.getAttribute('font-weight'));
@@ -471,8 +454,9 @@ function convertBlock(node, children, traverse) {
             textContent = children.length === 1 ? children[0] : children;
         }
     } else {
-        // No children - empty text
-        textContent = '';
+        // No children - self-closing block becomes newline character
+        // <fo:block/> → "\n" (used for line breaks within parent block)
+        textContent = '\n';
     }
     
     // Check for border/padding properties
@@ -565,7 +549,6 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
         convertBlock,
         convertInline,
-        trimEdgeSpaces,
         parseFontWeight,
         parseFontStyle,
         parseTextDecoration,
@@ -587,7 +570,6 @@ if (typeof window !== 'undefined') {
     window.BlockConverter = { 
         convertBlock,
         convertInline,
-        trimEdgeSpaces,
         parseFontWeight,
         parseFontStyle,
         parseTextDecoration,

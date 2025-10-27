@@ -36,7 +36,8 @@ function registerRecursiveTraversalTests(testRunner, converter, testXML, assert)
         
         const result = window.RecursiveTraversal.traverse(element, window.BlockConverter.convertBlock);
         
-        assert.equal(result, '', 'Should return empty string');
+        // Empty block now returns '\n' (self-closing blocks become line breaks)
+        assert.equal(result, '\n', 'Should return newline for empty block');
     });
 
     testRunner.addTest('Traversal: Should handle block with bold', () => {

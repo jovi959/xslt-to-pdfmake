@@ -34,7 +34,8 @@ function registerBlockConverterTests(testRunner, converter, testXML, assert) {
         
         const result = window.BlockConverter.convertBlock(block, children, null);
         
-        assert.equal(result, '', 'Should return empty string for empty block');
+        // Empty block now returns '\n' (self-closing blocks become line breaks)
+        assert.equal(result, '\n', 'Should return newline for empty block');
     });
 
     testRunner.addTest('Block Converter: Should convert bold attribute', () => {

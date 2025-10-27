@@ -315,20 +315,24 @@ function registerInlineConverterTests(testRunner, converter, testXML, assert) {
     });
 
     testRunner.addTest('Whitespace: trimEdgeSpaces helper function', () => {
-        // Test the trimEdgeSpaces function directly
+        // Test the trimEdgeSpaces function directly from WhitespaceUtils
+        const WhitespaceUtils = typeof window !== 'undefined' && window.WhitespaceUtils 
+            ? window.WhitespaceUtils 
+            : require('../../src/whitespace-utils.js');
+        
         const children1 = [' Hello ', 'world'];
-        const result1 = window.BlockConverter.trimEdgeSpaces(children1);
+        const result1 = WhitespaceUtils.trimEdgeSpaces(children1);
         assert.equal(result1[0], 'Hello ', 'Should trim leading space from first string');
         assert.equal(result1[1], 'world', 'Should trim trailing space from last string');
         
         const children2 = [' Text ', { text: 'inline' }, ' more '];
-        const result2 = window.BlockConverter.trimEdgeSpaces(children2);
+        const result2 = WhitespaceUtils.trimEdgeSpaces(children2);
         assert.equal(result2[0], 'Text ', 'Should trim leading from first text');
         assert.equal(result2[2], ' more', 'Should trim trailing from last text');
         assert.ok(result2[1].text === 'inline', 'Should preserve object in middle');
         
         const children3 = ['Single'];
-        const result3 = window.BlockConverter.trimEdgeSpaces(children3);
+        const result3 = WhitespaceUtils.trimEdgeSpaces(children3);
         assert.equal(result3[0], 'Single', 'Should work with single string');
     });
 }

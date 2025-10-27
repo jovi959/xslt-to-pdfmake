@@ -47,6 +47,12 @@ if (typeof registerIntegratedConversionTests === 'function') {
 if (typeof registerInheritancePreprocessorTests === 'function') {
     registerInheritancePreprocessorTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerWhitespaceNormalizationTests === 'function') {
+    registerWhitespaceNormalizationTests(testRunner, converter, emptyPageXML, assert);
+}
+if (typeof registerSelfClosingBlockTests === 'function') {
+    registerSelfClosingBlockTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js
