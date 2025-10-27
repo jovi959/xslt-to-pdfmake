@@ -172,12 +172,42 @@ function parseMargin(margin) {
 }
 
 /**
+ * Parses shorthand border attribute (e.g., "2px solid black")
+ * @param {string} borderStr - Border shorthand string
+ * @returns {Object} Object with width, style, and color properties
+ */
+function parseBorderShorthand(borderStr) {
+    if (!borderStr) return {};
+    
+    const result = {};
+    const parts = borderStr.trim().split(/\s+/);
+    
+    for (const part of parts) {
+        // Check if it's a width (starts with number)
+        if (/^[\d.]+/.test(part)) {
+            result.width = parseNumericValue(part);
+        }
+        // Check if it's a style (solid, dashed, dotted, etc.)
+        else if (/^(solid|dashed|dotted|double|groove|ridge|inset|outset|none|hidden)$/i.test(part)) {
+            result.style = part.toLowerCase();
+        }
+        // Check if it's a color (starts with # or is a named color)
+        else if (part.startsWith('#') || /^[a-z]+$/i.test(part)) {
+            result.color = parseColor(part);
+        }
+    }
+    
+    return result;
+}
+
+/**
  * Checks if a block has border properties
  * @param {Element} node - The fo:block DOM element
  * @returns {boolean} true if block has border properties
  */
 function hasBorder(node) {
-    return !!(node.getAttribute('border-style') || 
+    return !!(node.getAttribute('border') ||
+              node.getAttribute('border-style') || 
               node.getAttribute('border-width') || 
               node.getAttribute('border-color') ||
               node.getAttribute('padding'));
@@ -383,9 +413,13 @@ function convertBlock(node, children, traverse) {
     }
     
     // Check for border/padding properties
-    const borderStyle = node.getAttribute('border-style');
-    const borderWidth = parseBorderWidth(node.getAttribute('border-width'));
-    const borderColor = parseColor(node.getAttribute('border-color'));
+    // Parse shorthand border attribute first (e.g., "2px solid black")
+    const borderShorthand = parseBorderShorthand(node.getAttribute('border'));
+    
+    // Individual attributes override shorthand
+    const borderStyle = node.getAttribute('border-style') || borderShorthand.style;
+    const borderWidth = parseBorderWidth(node.getAttribute('border-width')) || borderShorthand.width;
+    const borderColor = parseColor(node.getAttribute('border-color')) || borderShorthand.color;
     const padding = parsePadding(node.getAttribute('padding'));
     const margin = parseMargin(node.getAttribute('margin'));
     
@@ -419,8 +453,8 @@ function convertBlock(node, children, traverse) {
             }
         };
         
-        // Add layout for border styling if border width or color specified
-        if (borderWidth !== undefined || borderColor !== undefined) {
+        // Add layout for border styling if any border attributes are specified
+        if (hasBorderAttributes) {
             const lineWidth = borderWidth !== undefined ? borderWidth : 0.5;
             const lineColor = borderColor !== undefined ? borderColor : '#000000';
             
@@ -474,6 +508,7 @@ if (typeof module !== 'undefined' && module.exports) {
         parseAlignment,
         parseNumericValue,
         parseBorderWidth,
+        parseBorderShorthand,
         parsePadding,
         parseMargin,
         hasBorder
@@ -492,6 +527,7 @@ if (typeof window !== 'undefined') {
         parseAlignment,
         parseNumericValue,
         parseBorderWidth,
+        parseBorderShorthand,
         parsePadding,
         parseMargin,
         hasBorder

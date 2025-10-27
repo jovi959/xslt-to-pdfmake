@@ -297,6 +297,145 @@ function registerBlockConverterTests(testRunner, converter, testXML, assert) {
         assert.deepEqual(result.table.body[0][0].margin, [10, 10, 10, 10], 'Should have padding as margin');
     });
 
+    testRunner.addTest('Block Converter: Should parse shorthand border attribute', () => {
+        const xml = `
+            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
+                      font-weight="bold" 
+                      text-align="center" 
+                      font-size="14pt" 
+                      border="2px solid black" 
+                      padding="5px 20px 5px 20px" 
+                      margin="10px 180px 0px 180px">
+                ACTION REQUIRED
+            </fo:block>
+        `;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        const element = xmlDoc.documentElement;
+        
+        const result = window.BlockConverter.convertBlock(element, ['ACTION REQUIRED'], null);
+        
+        assert.ok(result.table, 'Should have table property');
+        const cell = result.table.body[0][0];
+        
+        // Should have border set to true because border attribute is present
+        assert.deepEqual(cell.border, [true, true, true, true], 'Border should be [true, true, true, true] with border attribute');
+        
+        // Should parse border values
+        assert.ok(result.layout, 'Should have layout for border styling');
+        assert.equal(result.layout.hLineWidth(), 2, 'Should have 2px border width');
+        assert.equal(result.layout.vLineWidth(), 2, 'Should have 2px border width');
+        
+        // Should have text styling
+        assert.equal(cell.bold, true, 'Should have bold');
+        assert.equal(cell.fontSize, 14, 'Should have font size 14');
+        assert.equal(cell.alignment, 'center', 'Should have center alignment');
+        
+        // Should have padding and margin
+        assert.deepEqual(cell.margin, [20, 5, 20, 5], 'Should have padding converted to cell margin');
+        assert.deepEqual(result.margin, [180, 10, 180, 0], 'Should have margin on table');
+    });
+
+    testRunner.addTest('Block Converter: Should set border to false when only padding (no border attributes)', () => {
+        const xml = `
+            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
+                      font-weight="bold" 
+                      font-size="8pt" 
+                      padding="10px 0px 10px 0px">
+                Text content
+            </fo:block>
+        `;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        const element = xmlDoc.documentElement;
+        
+        const result = window.BlockConverter.convertBlock(element, ['Text content'], null);
+        
+        assert.ok(result.table, 'Should have table structure due to padding');
+        const cell = result.table.body[0][0];
+        
+        // Should have border set to false because no border attributes
+        assert.deepEqual(cell.border, [false, false, false, false], 'Border should be all false when no border attributes');
+        assert.deepEqual(cell.margin, [0, 10, 0, 10], 'Should have padding converted to margin');
+    });
+
+    testRunner.addTest('Block Converter: parseBorderShorthand should parse border values', () => {
+        const result1 = window.BlockConverter.parseBorderShorthand('2px solid black');
+        assert.equal(result1.width, 2, 'Should parse width');
+        assert.equal(result1.style, 'solid', 'Should parse style');
+        assert.equal(result1.color, 'black', 'Should parse black color');
+        
+        const result2 = window.BlockConverter.parseBorderShorthand('1pt dashed #FF0000');
+        assert.equal(result2.width, 1, 'Should parse pt width');
+        assert.equal(result2.style, 'dashed', 'Should parse dashed style');
+        assert.equal(result2.color, '#FF0000', 'Should parse hex color');
+        
+        // Edge case: style and color only (no width)
+        const result3 = window.BlockConverter.parseBorderShorthand('solid gray');
+        assert.equal(result3.style, 'solid', 'Should parse style without width');
+        assert.equal(result3.color, 'gray', 'Should parse color without width');
+        assert.equal(result3.width, undefined, 'Width should be undefined');
+        
+        // Edge case: style only with trailing space
+        const result4 = window.BlockConverter.parseBorderShorthand('solid ');
+        assert.equal(result4.style, 'solid', 'Should parse style with trailing space');
+        assert.equal(result4.width, undefined, 'Width should be undefined');
+        assert.equal(result4.color, undefined, 'Color should be undefined');
+    });
+
+    testRunner.addTest('Block Converter: Should handle border shorthand with style and color only', () => {
+        const xml = `
+            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
+                      border="solid gray" 
+                      background-color="yellow">
+                Test Border 2
+            </fo:block>
+        `;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        const element = xmlDoc.documentElement;
+        
+        const result = window.BlockConverter.convertBlock(element, ['Test Border 2'], null);
+        
+        assert.ok(result.table, 'Should have table property');
+        const cell = result.table.body[0][0];
+        
+        // Should have border set to true because border attribute is present
+        assert.deepEqual(cell.border, [true, true, true, true], 'Border should be [true, true, true, true]');
+        
+        // Should have layout with default width and parsed color
+        assert.ok(result.layout, 'Should have layout for border styling');
+        assert.equal(result.layout.hLineWidth(), 0.5, 'Should use default 0.5 width when not specified');
+        assert.equal(result.layout.hLineColor(), 'gray', 'Should have gray color');
+    });
+
+    testRunner.addTest('Block Converter: Should handle border shorthand with style only', () => {
+        const xml = `
+            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
+                      space-before="12pt" 
+                      border="solid " 
+                      background-color="yellow">
+                Test Border
+            </fo:block>
+        `;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        const element = xmlDoc.documentElement;
+        
+        const result = window.BlockConverter.convertBlock(element, ['Test Border'], null);
+        
+        assert.ok(result.table, 'Should have table property');
+        const cell = result.table.body[0][0];
+        
+        // Should have border set to true because border attribute is present
+        assert.deepEqual(cell.border, [true, true, true, true], 'Border should be [true, true, true, true]');
+        
+        // Should have layout with defaults when only style is specified
+        assert.ok(result.layout, 'Should have layout for border styling');
+        assert.equal(result.layout.hLineWidth(), 0.5, 'Should use default 0.5 width');
+        assert.equal(result.layout.hLineColor(), '#000000', 'Should use default black color');
+    });
+
     testRunner.addTest('Block Converter: Should not convert block without border to table', () => {
         const xml = `
             <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
