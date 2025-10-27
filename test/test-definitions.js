@@ -38,6 +38,9 @@ if (typeof registerRecursiveTraversalTests === 'function') {
 if (typeof registerNestedBlockStylingTests === 'function') {
     registerNestedBlockStylingTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerInlineConverterTests === 'function') {
+    registerInlineConverterTests(testRunner, converter, emptyPageXML, assert);
+}
 if (typeof registerIntegratedConversionTests === 'function') {
     registerIntegratedConversionTests(testRunner, converter, emptyPageXML, assert);
 }

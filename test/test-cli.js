@@ -206,11 +206,12 @@ class SimpleXMLParser {
         for (const start of elementStarts) {
             // Add text before this element
             const textBefore = content.slice(currentIndex, start.index);
-            const trimmedBefore = textBefore.trim();
-            if (trimmedBefore) {
+            // Only skip purely whitespace-only nodes (XML formatting), but preserve meaningful spaces
+            const isWhitespaceOnly = /^\s*$/.test(textBefore);
+            if (textBefore && !isWhitespaceOnly) {
                 children.push({
                     nodeType: 3, // TEXT_NODE
-                    textContent: trimmedBefore,
+                    textContent: textBefore,
                     nodeName: '#text'
                 });
             }
@@ -225,11 +226,12 @@ class SimpleXMLParser {
         
         // Add remaining text
         const textAfter = content.slice(currentIndex);
-        const trimmedAfter = textAfter.trim();
-        if (trimmedAfter) {
+        // Only skip purely whitespace-only nodes (XML formatting), but preserve meaningful spaces
+        const isWhitespaceOnly = /^\s*$/.test(textAfter);
+        if (textAfter && !isWhitespaceOnly) {
             children.push({
                 nodeType: 3, // TEXT_NODE
-                textContent: trimmedAfter,
+                textContent: textAfter,
                 nodeName: '#text'
             });
         }
@@ -809,6 +811,12 @@ async function main() {
         'utf-8'
     );
 
+    // Load inline conversion test data
+    const inlineConversionXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'inline_conversion.xslt'),
+        'utf-8'
+    );
+
     // Load new modules
     const { traverse, flattenContent } = require('../src/recursive-traversal.js');
     const BlockConverter = require('../src/block-converter.js');
@@ -837,6 +845,7 @@ async function main() {
     const { registerBlockConverterTests } = require('./tests/block-converter.test.js');
     const { registerRecursiveTraversalTests } = require('./tests/recursive-traversal.test.js');
     const { registerNestedBlockStylingTests } = require('./tests/nested-block-styling.test.js');
+    const { registerInlineConverterTests } = require('./tests/inline-converter.test.js');
     const { registerIntegratedConversionTests } = require('./tests/integrated-conversion.test.js');
     
     // Load integrated conversion test data
@@ -854,6 +863,7 @@ async function main() {
     registerBlockConverterTests(testRunner, converter, blockConversionXML, assert);
     registerRecursiveTraversalTests(testRunner, converter, blockConversionXML, assert);
     registerNestedBlockStylingTests(testRunner, converter, blockConversionXML, assert);
+    registerInlineConverterTests(testRunner, converter, inlineConversionXML, assert);
     registerIntegratedConversionTests(testRunner, converter, integratedConversionXML, assert);
 
     // Run all tests

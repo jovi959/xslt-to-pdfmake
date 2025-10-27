@@ -184,6 +184,132 @@ function hasBorder(node) {
 }
 
 /**
+ * Trims edge whitespace from children array (HTML-like normalization)
+ * - Trim leading space from first text child (touching parent's opening tag)
+ * - Trim trailing space from last text child (touching parent's closing tag)
+ * - Preserve all internal spaces between siblings
+ * 
+ * @param {Array} children - Array of child content (strings and objects)
+ * @returns {Array} Children with edge spaces trimmed
+ */
+function trimEdgeSpaces(children) {
+    if (!children || children.length === 0) {
+        return children;
+    }
+    
+    const trimmed = [...children];
+    
+    // Trim leading space from first string child
+    for (let i = 0; i < trimmed.length; i++) {
+        if (typeof trimmed[i] === 'string') {
+            trimmed[i] = trimmed[i].replace(/^\s+/, '');
+            // If it becomes empty, remove it
+            if (trimmed[i] === '') {
+                trimmed.splice(i, 1);
+                i--;
+            }
+            break; // Only trim the first text node
+        }
+    }
+    
+    // Trim trailing space from last string child
+    for (let i = trimmed.length - 1; i >= 0; i--) {
+        if (typeof trimmed[i] === 'string') {
+            trimmed[i] = trimmed[i].replace(/\s+$/, '');
+            // If it becomes empty, remove it
+            if (trimmed[i] === '') {
+                trimmed.splice(i, 1);
+            }
+            break; // Only trim the last text node
+        }
+    }
+    
+    return trimmed;
+}
+
+/**
+ * Converts a <fo:inline> element to PDFMake inline content
+ * 
+ * @param {Element} node - The fo:inline DOM element
+ * @param {Array} children - Already-processed child content from recursive traversal
+ * @param {Function} traverse - Reference to traverse function
+ * @returns {Object|string} PDFMake inline content object or string
+ */
+function convertInline(node, children, traverse) {
+    // If not an inline element, return null
+    if (node.nodeName !== 'fo:inline') {
+        return null;
+    }
+
+    // Apply HTML-like edge whitespace trimming
+    children = trimEdgeSpaces(children);
+
+    // Extract and convert attributes
+    const bold = parseFontWeight(node.getAttribute('font-weight'));
+    const italics = parseFontStyle(node.getAttribute('font-style'));
+    const decoration = parseTextDecoration(node.getAttribute('text-decoration'));
+    const fontSize = parseFontSize(node.getAttribute('font-size'));
+    const color = parseColor(node.getAttribute('color'));
+    const alignment = parseAlignment(node.getAttribute('text-align'));
+
+    // Build the text content
+    let textContent;
+    if (children && children.length > 0) {
+        // Check if we have nested inlines (objects)
+        const hasNestedInlines = children.some(child => typeof child === 'object' && child !== null && !Array.isArray(child));
+        
+        // If only one child and it's a string, use it directly
+        if (children.length === 1 && typeof children[0] === 'string') {
+            textContent = children[0];
+        } else if (hasNestedInlines) {
+            // Has nested inlines - wrap text children with this inline's styling
+            textContent = children.map(child => {
+                if (typeof child === 'string') {
+                    // Text node with nested inline siblings - wrap with parent styling
+                    const styledText = { text: child };
+                    if (bold !== undefined) styledText.bold = bold;
+                    if (italics !== undefined) styledText.italics = italics;
+                    if (decoration !== undefined) styledText.decoration = decoration;
+                    if (fontSize !== undefined) styledText.fontSize = fontSize;
+                    if (color !== undefined) styledText.color = color;
+                    if (alignment !== undefined) styledText.alignment = alignment;
+                    
+                    // If no styling, return string as-is
+                    return Object.keys(styledText).length > 1 ? styledText : child;
+                } else {
+                    // Nested inline - return as-is
+                    return child;
+                }
+            });
+        } else {
+            // No nested inlines - use array of children as-is
+            textContent = children.length === 1 ? children[0] : children;
+        }
+    } else {
+        // No children - empty text
+        textContent = '';
+    }
+    
+    // Build the inline object
+    const result = { text: textContent };
+    
+    // Only add properties that are defined
+    if (bold !== undefined) result.bold = bold;
+    if (italics !== undefined) result.italics = italics;
+    if (decoration !== undefined) result.decoration = decoration;
+    if (fontSize !== undefined) result.fontSize = fontSize;
+    if (color !== undefined) result.color = color;
+    if (alignment !== undefined) result.alignment = alignment;
+
+    // If result only has text property and it's a string, return just the string
+    if (Object.keys(result).length === 1 && typeof result.text === 'string') {
+        return result.text;
+    }
+
+    return result;
+}
+
+/**
  * Converts a <fo:block> element to PDFMake content definition
  * 
  * This function is designed to be used as a converter callback for the traverse function.
@@ -197,10 +323,17 @@ function hasBorder(node) {
  * @returns {Object|string} PDFMake content object or string
  */
 function convertBlock(node, children, traverse) {
-    // If not a block element, return null (shouldn't happen with proper usage)
+    // If not a block element, check if it's an inline element
     if (node.nodeName !== 'fo:block') {
+        // Delegate to inline converter if it's an inline element
+        if (node.nodeName === 'fo:inline') {
+            return convertInline(node, children, traverse);
+        }
         return null;
     }
+
+    // Apply HTML-like edge whitespace trimming
+    children = trimEdgeSpaces(children);
 
     // Extract and convert attributes first (we'll need these to style text children)
     const bold = parseFontWeight(node.getAttribute('font-weight'));
@@ -272,8 +405,11 @@ function convertBlock(node, children, traverse) {
             cellContent.margin = padding;
         }
         
-        // Set border on all sides
-        cellContent.border = [true, true, true, true];
+        // Check if actual border attributes are present (not just padding)
+        const hasBorderAttributes = borderStyle || borderWidth !== undefined || borderColor !== undefined;
+        
+        // Set border on all sides based on whether border attributes are present
+        cellContent.border = hasBorderAttributes ? [true, true, true, true] : [false, false, false, false];
         
         // Build the table structure
         const tableStructure = {
@@ -328,6 +464,8 @@ function convertBlock(node, children, traverse) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
         convertBlock,
+        convertInline,
+        trimEdgeSpaces,
         parseFontWeight,
         parseFontStyle,
         parseTextDecoration,
@@ -344,6 +482,8 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
     window.BlockConverter = { 
         convertBlock,
+        convertInline,
+        trimEdgeSpaces,
         parseFontWeight,
         parseFontStyle,
         parseTextDecoration,

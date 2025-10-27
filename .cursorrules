@@ -1,5 +1,23 @@
 # XSLT to PDFMake Converter - Cursor Rules
 
+## ⚠️ Quick Checklist for New Tag Converters
+
+When implementing ANY new XSL-FO element converter:
+
+| Step | Action | Required |
+|------|--------|----------|
+| 1 | Create separate module file (e.g., `src/table-converter.js`) | ✅ YES |
+| 2 | **Call `trimEdgeSpaces(children)` at start of converter** | ✅ YES |
+| 3 | Import `trimEdgeSpaces` from `block-converter.js` if in new module | ✅ YES |
+| 4 | Export for both browser and Node.js | ✅ YES |
+| 5 | Add JSDoc documentation | ✅ YES |
+| 6 | Create test suite with whitespace tests | ✅ YES |
+| 7 | Register tests in test-cli.js and test.html | ✅ YES |
+
+**Critical:** Never forget step 2! All converters must normalize whitespace.
+
+---
+
 ## Project Structure
 
 - **Main converter**: `src/xslt-to-pdfmake.js` (browser + Node.js compatible)
@@ -23,6 +41,58 @@ To keep the codebase maintainable and prevent file bloat, **ALL new feature impl
 **Examples:**
 - ✅ **CAN add to xslt-to-pdfmake.js**: Core utility methods, infrastructure, coordination logic
 - ❌ **MUST extract to separate module**: Block converter logic, table parser, font handler, image processor
+
+### **⚠️ CRITICAL: Whitespace Normalization for All Tag Converters**
+
+When implementing converters for ANY XSL-FO element (blocks, inlines, tables, lists, etc.), you MUST apply HTML-like whitespace normalization using the `trimEdgeSpaces()` helper function.
+
+**Why This Matters:**
+- XSL-FO XML often contains formatting whitespace (newlines, indentation) that should be removed
+- Meaningful spaces between content (e.g., between words, between inline elements) MUST be preserved
+- Edge spaces touching the parent element's tags should be trimmed
+
+**The Rule:**
+```javascript
+// At the start of ANY converter function (block, table, list, etc.)
+function convertYourElement(node, children, traverse) {
+    // Apply HTML-like edge whitespace trimming
+    children = trimEdgeSpaces(children);
+    
+    // ... rest of your conversion logic
+}
+```
+
+**What `trimEdgeSpaces()` Does:**
+1. **Trims leading spaces** from the first text child (touching parent's opening tag)
+2. **Trims trailing spaces** from the last text child (touching parent's closing tag)  
+3. **Preserves ALL internal spaces** between siblings (meaningful separation)
+4. **Filters whitespace-only nodes** (already handled by recursive-traversal.js)
+
+**Examples:**
+
+✅ **Edge Trimming:**
+```xml
+<fo:block> Hello world </fo:block>
+```
+→ `"Hello world"` (edges trimmed)
+
+✅ **Sibling Space Preservation:**
+```xml
+<fo:block>Text <fo:inline color="red">red</fo:inline> more</fo:block>
+```
+→ `["Text ", {red inline}, " more"]` (spaces between siblings preserved)
+
+✅ **Applies to ALL elements:**
+```xml
+<fo:table-cell> Content </fo:table-cell>
+```
+→ `"Content"` (edges trimmed)
+
+**Location:** The `trimEdgeSpaces()` function is in `src/block-converter.js` and is exported for use in other converters.
+
+**Remember:** If you're implementing a new tag converter (table, list, image, etc.) and it processes children, ALWAYS call `trimEdgeSpaces(children)` first!
+
+---
 
 ### When Adding New Functionality
 
@@ -331,12 +401,14 @@ Or open `test/test.html` in browser.
 
 ### Adding a Converter Feature
 - [ ] **Create new module file** `src/{feature-name}.js` (DO NOT add to xslt-to-pdfmake.js)
+- [ ] **⚠️ Apply `trimEdgeSpaces(children)` at start of converter** (for HTML-like whitespace normalization)
 - [ ] Implement feature with proper exports for browser 
 - [ ] Add JSDoc documentation
 - [ ] Import module in `src/xslt-to-pdfmake.js` (or use directly)
 - [ ] Update HTML files to load the new module script
 - [ ] Update CLI version (test-cli.js) to require the module if needed
 - [ ] Create test suite for new feature
+- [ ] Add whitespace normalization tests (edge trimming, sibling preservation)
 - [ ] Verify browser and CLI tests pass
 
 ---
@@ -352,7 +424,13 @@ Let's say you want to add "table parsing" functionality:
  * Parses XSL-FO table elements to PDFMake table definitions
  */
 
-function parseTable(tableElement) {
+// Import trimEdgeSpaces from block-converter
+const { trimEdgeSpaces } = require('./block-converter.js');
+
+function parseTable(node, children, traverse) {
+    // ⚠️ CRITICAL: Apply HTML-like whitespace normalization
+    children = trimEdgeSpaces(children);
+    
     // Implementation
     return {
         table: {
@@ -361,7 +439,10 @@ function parseTable(tableElement) {
     };
 }
 
-function parseTableRow(rowElement) {
+function parseTableRow(node, children, traverse) {
+    // ⚠️ CRITICAL: Apply whitespace normalization for row children too
+    children = trimEdgeSpaces(children);
+    
     // Implementation
     return [/* cells */];
 }

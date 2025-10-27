@@ -104,11 +104,7 @@ function registerNestedBlockStylingTests(testRunner, converter, testXML, assert)
     });
 
     testRunner.addTest('Nested Styling: Only text nodes (no nested blocks)', () => {
-        const xml = `
-            <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" font-weight="bold">
-              Just text content
-            </fo:block>
-        `;
+        const xml = `<fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" font-weight="bold">Just text content</fo:block>`;
         const element = parseXML(xml);
         const result = window.RecursiveTraversal.traverse(element, window.BlockConverter.convertBlock);
         

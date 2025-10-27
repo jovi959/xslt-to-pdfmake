@@ -484,6 +484,7 @@
     <script src="tests/block-converter.test.js"></script>
     <script src="tests/recursive-traversal.test.js"></script>
     <script src="tests/nested-block-styling.test.js"></script>
+    <script src="tests/inline-converter.test.js"></script>
     <script src="tests/integrated-conversion.test.js"></script>
     
     <!-- Load test loader -->
@@ -509,6 +510,7 @@
         let pageSequenceXML = null;
         let singlePageSequenceXML = null;
         let blockConversionXML = null;
+        let inlineConversionXML = null;
         let integratedConversionXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
@@ -541,6 +543,7 @@
                 pageSequenceXML = await loadTestFile('data/page_sequence.xslt');
                 singlePageSequenceXML = await loadTestFile('data/single_page_sequence.xslt');
                 blockConversionXML = await loadTestFile('data/block_conversion.xslt');
+                inlineConversionXML = await loadTestFile('data/inline_conversion.xslt');
                 integratedConversionXML = await loadTestFile('data/integrated_conversion.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
@@ -568,6 +571,7 @@
                 { registerFn: registerBlockConverterTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
                 { registerFn: registerRecursiveTraversalTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
                 { registerFn: registerNestedBlockStylingTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
+                { registerFn: registerInlineConverterTests, xml: inlineConversionXML, name: 'inline_conversion.xslt' },
                 { registerFn: registerIntegratedConversionTests, xml: integratedConversionXML, name: 'integrated_conversion.xslt' }
             ];
             

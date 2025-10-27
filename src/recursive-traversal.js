@@ -26,8 +26,16 @@ function traverse(node, converterFn) {
 
     // Handle text nodes
     if (node.nodeType === 3) { // Node.TEXT_NODE
-        const text = node.textContent.trim();
-        return text || null;
+        const text = node.textContent;
+        
+        // Filter out whitespace-only nodes (XML formatting like newlines/indentation)
+        if (text === '' || /^\s*$/.test(text)) {
+            return null;
+        }
+        
+        // For text nodes with actual content, we'll return them as-is
+        // Trimming will be handled by the parent converter based on position
+        return text;
     }
 
     // Handle element nodes
