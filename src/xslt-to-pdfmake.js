@@ -249,12 +249,19 @@ class XSLToPDFMakeConverter {
             // Check if we have the required modules available
             const hasTraversal = typeof window !== 'undefined' && window.RecursiveTraversal;
             const hasBlockConverter = typeof window !== 'undefined' && window.BlockConverter;
+            const hasTableConverter = typeof window !== 'undefined' && window.TableConverter;
 
             // If modules not available in browser, check Node.js
-            let traverse, convertBlock;
+            let traverse, convertBlock, convertTable;
+            
+            // Browser environment
             if (hasTraversal && hasBlockConverter) {
                 traverse = window.RecursiveTraversal.traverse;
                 convertBlock = window.BlockConverter.convertBlock;
+                // Table converter is optional
+                if (hasTableConverter) {
+                    convertTable = window.TableConverter.convertTable;
+                }
             } else if (typeof require !== 'undefined') {
                 // Node.js environment
                 try {
@@ -262,8 +269,17 @@ class XSLToPDFMakeConverter {
                     const BlockConverter = require('./block-converter.js');
                     traverse = RecursiveTraversal.traverse;
                     convertBlock = BlockConverter.convertBlock;
+                    
+                    // Try to load table converter (optional)
+                    try {
+                        const TableConverter = require('./table-converter.js');
+                        convertTable = TableConverter.convertTable;
+                    } catch (tableErr) {
+                        // Table converter not available, that's okay
+                        console.log('Table converter not loaded (optional)');
+                    }
                 } catch (e) {
-                    console.warn('Block conversion modules not available:', e.message);
+                    console.warn('Conversion modules not available:', e.message);
                     return content; // Return empty content if modules not available
                 }
             }
@@ -275,7 +291,7 @@ class XSLToPDFMakeConverter {
 
             // Process each flow
             flows.forEach(flow => {
-                // Get all direct children of flow (typically fo:block elements)
+                // Get all direct children of flow (typically fo:block or fo:table elements)
                 const children = flow.childNodes;
                 
                 for (let i = 0; i < children.length; i++) {
@@ -287,6 +303,14 @@ class XSLToPDFMakeConverter {
                     // Process block elements
                     if (child.nodeName === 'fo:block' || child.nodeName === 'block') {
                         const converted = traverse(child, convertBlock);
+                        if (converted !== null && converted !== undefined) {
+                            content.push(converted);
+                        }
+                    }
+                    
+                    // Process table elements (if table converter is available)
+                    if ((child.nodeName === 'fo:table' || child.nodeName === 'table') && convertTable) {
+                        const converted = traverse(child, convertTable);
                         if (converted !== null && converted !== undefined) {
                             content.push(converted);
                         }
@@ -322,17 +346,33 @@ class XSLToPDFMakeConverter {
                 ? window.BlockInheritanceConfig
                 : require('./block-inheritance-config.js');
             
+            const tableConfig = typeof window !== 'undefined'
+                ? window.TableInheritanceConfig
+                : require('./table-inheritance-config.js');
+            
             if (preprocessor && blockConfig) {
-                const config = blockConfig.getBlockInheritanceConfig 
+                // Get block inheritance config
+                const blockInheritanceConfig = blockConfig.getBlockInheritanceConfig 
                     ? blockConfig.getBlockInheritanceConfig()
                     : blockConfig.BLOCK_INHERITANCE_CONFIG;
                 
+                // Get table inheritance config
+                const tableInheritanceConfig = tableConfig && (tableConfig.getTableInheritanceConfig
+                    ? tableConfig.getTableInheritanceConfig()
+                    : tableConfig.TABLE_INHERITANCE_CONFIG);
+                
+                // Merge both configs
+                const mergedConfig = [...blockInheritanceConfig];
+                if (tableInheritanceConfig) {
+                    mergedConfig.push(...tableInheritanceConfig);
+                }
+                
                 if (preprocessor.preprocessXML) {
                     processedXml = preprocessor.preprocessXML(processedXml, {
-                        inheritanceConfig: config
+                        inheritanceConfig: mergedConfig
                     });
                 } else if (preprocessor.preprocessInheritance) {
-                    processedXml = preprocessor.preprocessInheritance(processedXml, config);
+                    processedXml = preprocessor.preprocessInheritance(processedXml, mergedConfig);
                 }
             }
         }

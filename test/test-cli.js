@@ -494,9 +494,19 @@ class XSLToPDFMakeConverter {
 
     extractContent(xslfoXml) {
         try {
-            // Load block conversion modules
+            // Load conversion modules
             const { traverse } = require('../src/recursive-traversal.js');
             const { convertBlock } = require('../src/block-converter.js');
+            
+            // Try to load table converter (optional)
+            let convertTable = null;
+            try {
+                const TableConverter = require('../src/table-converter.js');
+                convertTable = TableConverter.convertTable;
+            } catch (e) {
+                // Table converter not available, that's okay
+                console.log('Table converter not loaded (optional)');
+            }
 
             if (!traverse || !convertBlock) {
                 console.warn('Block conversion modules not available');
@@ -506,44 +516,54 @@ class XSLToPDFMakeConverter {
             const parser = new SimpleXMLParser();
             const content = [];
 
-            // Find flow elements and extract their direct block children
+            // Find flow elements and extract their direct children (blocks and tables)
             const flowRegex = /<(fo:)?flow[^>]*>([\s\S]*?)<\/\1?flow>/gi;
             let flowMatch;
             
             while ((flowMatch = flowRegex.exec(xslfoXml)) !== null) {
                 const flowContent = flowMatch[2]; // Capture group 2 is the content between flow tags
                 
-                // Extract each top-level block using proper depth counting
+                // Extract each top-level element (block or table) using proper depth counting
                 let currentPos = 0;
                 
                 while (currentPos < flowContent.length) {
-                    // Find next block start
-                    const blockStartRegex = /<(fo:block|block)[\s>]/;
-                    const startMatch = flowContent.substring(currentPos).match(blockStartRegex);
+                    // Find next block or table start
+                    const elementStartRegex = /<(fo:block|block|fo:table|table)[\s>\/]/;
+                    const startMatch = flowContent.substring(currentPos).match(elementStartRegex);
                     
                     if (!startMatch) break;
                     
-                    const blockStart = currentPos + startMatch.index;
+                    const elementStart = currentPos + startMatch.index;
                     const tagName = startMatch[1];
                     
-                    // Extract the complete block using depth counting
-                    const blockXml = this._extractBlockAt(flowContent, blockStart, tagName);
+                    // Extract the complete element using depth counting
+                    const elementXml = this._extractBlockAt(flowContent, elementStart, tagName);
                     
-                    if (blockXml) {
-                        // Parse and convert the block
-                        const blockDoc = parser.parse(blockXml);
-                        const blockElement = blockDoc.documentElement;
+                    if (elementXml) {
+                        // Parse and convert the element
+                        const elementDoc = parser.parse(elementXml);
+                        const element = elementDoc.documentElement;
                         
-                        if (blockElement) {
-                            const converted = traverse(blockElement, convertBlock);
+                        if (element) {
+                            let converted = null;
+                            
+                            // Use appropriate converter based on tag name
+                            if (tagName === 'fo:table' || tagName === 'table') {
+                                if (convertTable) {
+                                    converted = traverse(element, convertTable);
+                                }
+                            } else {
+                                converted = traverse(element, convertBlock);
+                            }
+                            
                             if (converted !== null && converted !== undefined) {
                                 content.push(converted);
                             }
                         }
                         
-                        currentPos = blockStart + blockXml.length;
+                        currentPos = elementStart + elementXml.length;
                     } else {
-                        currentPos = blockStart + 1;
+                        currentPos = elementStart + 1;
                     }
                 }
             }
@@ -869,11 +889,15 @@ async function main() {
     global.BlockConverter = BlockConverter;
     global.DOMParser = DOMParser;
     
+    // Load table inheritance config
+    const TableInheritanceConfig = require('../src/table-inheritance-config.js');
+    
     // Also set on window for test compatibility
     global.window.RecursiveTraversal = { traverse, flattenContent };
     global.window.BlockConverter = BlockConverter;
     global.window.InheritancePreprocessor = InheritancePreprocessor;
     global.window.BlockInheritanceConfig = BlockInheritanceConfig;
+    global.window.TableInheritanceConfig = TableInheritanceConfig;
     global.window.DOMParser = DOMParser;
     global.SimpleXMLParser = SimpleXMLParser; // Make SimpleXMLParser available to preprocessor
 
@@ -892,6 +916,9 @@ async function main() {
     const { registerWhitespaceNormalizationTests } = require('./tests/whitespace-normalization.test.js');
     const { registerSelfClosingBlockTests } = require('./tests/self-closing-block.test.js');
     const { registerSpecialAttributesTests } = require('./tests/special-attributes.test.js');
+    const { registerTableConverterTests } = require('./tests/table-converter.test.js');
+    const { registerTableIntegrationTests } = require('./tests/table-integration.test.js');
+    const { registerTableInheritanceTests } = require('./tests/table-inheritance.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -914,6 +941,9 @@ async function main() {
     registerWhitespaceNormalizationTests(testRunner, converter, emptyPageXML, assert);
     registerSelfClosingBlockTests(testRunner, converter, emptyPageXML, assert);
     registerSpecialAttributesTests(testRunner, converter, emptyPageXML, assert);
+    registerTableConverterTests(testRunner, converter, emptyPageXML, assert);
+    registerTableIntegrationTests(testRunner, converter, emptyPageXML, assert);
+    registerTableInheritanceTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests
     await testRunner.runTests();

@@ -56,6 +56,15 @@ if (typeof registerSelfClosingBlockTests === 'function') {
 if (typeof registerSpecialAttributesTests === 'function') {
     registerSpecialAttributesTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerTableConverterTests === 'function') {
+    registerTableConverterTests(testRunner, converter, emptyPageXML, assert);
+}
+if (typeof registerTableIntegrationTests === 'function') {
+    registerTableIntegrationTests(testRunner, converter, emptyPageXML, assert);
+}
+if (typeof registerTableInheritanceTests === 'function') {
+    registerTableInheritanceTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

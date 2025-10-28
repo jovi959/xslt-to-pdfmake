@@ -466,15 +466,17 @@
 
     <script src="../lib/pdfmake.min.js"></script>
     <script src="../lib/vfs_fonts.js"></script>
-    <script src="../src/xslt-to-pdfmake.js"></script>
-    <script src="../src/doc-definition-formatter.js"></script>
     
-    <!-- Load new modules -->
+    <!-- Load converter modules (IN ORDER: dependencies first!) -->
     <script src="../src/whitespace-utils.js"></script>
     <script src="../src/recursive-traversal.js"></script>
     <script src="../src/block-converter.js"></script>
+    <script src="../src/table-converter.js"></script>
     <script src="../src/preprocessor.js"></script>
     <script src="../src/block-inheritance-config.js"></script>
+    <script src="../src/table-inheritance-config.js"></script>
+    <script src="../src/xslt-to-pdfmake.js"></script>
+    <script src="../src/doc-definition-formatter.js"></script>
     
     <script src="test-runner.js"></script>
     
@@ -493,6 +495,9 @@
     <script src="tests/whitespace-normalization.test.js"></script>
     <script src="tests/self-closing-block.test.js"></script>
     <script src="tests/special-attributes.test.js"></script>
+    <script src="tests/table-converter.test.js"></script>
+    <script src="tests/table-integration.test.js"></script>
+    <script src="tests/table-inheritance.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -521,6 +526,7 @@
         let integratedConversionXML = null;
         let inheritanceExamplesXML = null;
         let specialFeaturesXML = null;
+        let tableXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -556,6 +562,7 @@
                 integratedConversionXML = await loadTestFile('data/integrated_conversion.xslt');
                 inheritanceExamplesXML = await loadTestFile('data/inheritance_examples.xslt');
                 specialFeaturesXML = await loadTestFile('data/special_features.xslt');
+                tableXML = await loadTestFile('data/table.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -587,7 +594,10 @@
                 { registerFn: registerInheritancePreprocessorTests, xml: inheritanceExamplesXML, name: 'inheritance_examples.xslt' },
                 { registerFn: registerWhitespaceNormalizationTests, xml: specialFeaturesXML, name: 'special_features.xslt' },
                 { registerFn: registerSelfClosingBlockTests, xml: specialFeaturesXML, name: 'special_features.xslt' },
-                { registerFn: registerSpecialAttributesTests, xml: specialFeaturesXML, name: 'special_features.xslt' }
+                { registerFn: registerSpecialAttributesTests, xml: specialFeaturesXML, name: 'special_features.xslt' },
+                { registerFn: registerTableConverterTests, xml: tableXML, name: 'table.xslt' },
+                { registerFn: registerTableIntegrationTests, xml: tableXML, name: 'table.xslt' },
+                { registerFn: registerTableInheritanceTests, xml: tableXML, name: 'table.xslt' }
             ];
             
             // Register each test suite and map to its data file
