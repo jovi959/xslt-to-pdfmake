@@ -94,27 +94,41 @@ function convertTableCell(node, children, traverse) {
         cellContent = '';
     }
 
+    // Check for column spanning
+    const colSpan = parseInt(node.getAttribute('number-columns-spanned'), 10);
+    
     // Check for border attribute
     const border = parseCellBorder(node.getAttribute('border'));
     
-    // If cell has a border, return as object with border property
-    if (border) {
-        // If cellContent is a string, wrap it
+    // Build cell object if we have colSpan or border
+    const needsObject = colSpan > 1 || border;
+    
+    if (needsObject) {
+        // Build cell object
+        const cellObject = {};
+        
+        // Add content
         if (typeof cellContent === 'string') {
-            return {
-                text: cellContent,
-                border: border
-            };
+            cellObject.text = cellContent;
         } else if (typeof cellContent === 'object' && cellContent !== null) {
-            // If it's already an object, add border to it
-            return {
-                ...cellContent,
-                border: border
-            };
+            // If cellContent is already an object, merge it
+            Object.assign(cellObject, cellContent);
         }
+        
+        // Add colSpan if present
+        if (colSpan > 1) {
+            cellObject.colSpan = colSpan;
+        }
+        
+        // Add border if present
+        if (border) {
+            cellObject.border = border;
+        }
+        
+        return cellObject;
     }
 
-    // No border - return content as-is
+    // No special attributes - return content as-is
     return cellContent;
 }
 
@@ -164,6 +178,15 @@ function convertTableRow(node, traverse) {
                 const cellContent = convertTableCell(child, cellChildren, traverse);
                 if (cellContent !== null) {
                     row.push(cellContent);
+                    
+                    // If cell has colSpan, add empty placeholder cells
+                    const colSpan = parseInt(child.getAttribute('number-columns-spanned'), 10);
+                    if (colSpan > 1) {
+                        // Add (colSpan - 1) empty placeholder cells
+                        for (let k = 1; k < colSpan; k++) {
+                            row.push({});
+                        }
+                    }
                 }
             }
         }

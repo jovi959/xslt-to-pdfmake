@@ -916,14 +916,21 @@ async function main() {
     const { registerWhitespaceNormalizationTests } = require('./tests/whitespace-normalization.test.js');
     const { registerSelfClosingBlockTests } = require('./tests/self-closing-block.test.js');
     const { registerSpecialAttributesTests } = require('./tests/special-attributes.test.js');
-    const { registerTableConverterTests } = require('./tests/table-converter.test.js');
+    const { registerTableConverterTests, registerTableColspanUnitTests } = require('./tests/table-converter.test.js');
     const { registerTableIntegrationTests } = require('./tests/table-integration.test.js');
     const { registerTableInheritanceTests } = require('./tests/table-inheritance.test.js');
+    const { registerTableColspanTests } = require('./tests/table-colspan.test.js');
     const { registerCustomFontsTests } = require('./tests/custom-fonts.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
         path.join(__dirname, 'data', 'integrated_conversion.xslt'),
+        'utf-8'
+    );
+    
+    // Load table colspan test data
+    const tableColspanXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'table_colspan.xslt'),
         'utf-8'
     );
     
@@ -943,8 +950,10 @@ async function main() {
     registerSelfClosingBlockTests(testRunner, converter, emptyPageXML, assert);
     registerSpecialAttributesTests(testRunner, converter, emptyPageXML, assert);
     registerTableConverterTests(testRunner, converter, emptyPageXML, assert);
+    registerTableColspanUnitTests(testRunner, converter, tableColspanXML, assert);
     registerTableIntegrationTests(testRunner, converter, emptyPageXML, assert);
     registerTableInheritanceTests(testRunner, converter, emptyPageXML, assert);
+    registerTableColspanTests(testRunner, converter, tableColspanXML, assert);
     registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests

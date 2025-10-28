@@ -59,11 +59,17 @@ if (typeof registerSpecialAttributesTests === 'function') {
 if (typeof registerTableConverterTests === 'function') {
     registerTableConverterTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerTableColspanUnitTests === 'function') {
+    registerTableColspanUnitTests(testRunner, converter, emptyPageXML, assert);
+}
 if (typeof registerTableIntegrationTests === 'function') {
     registerTableIntegrationTests(testRunner, converter, emptyPageXML, assert);
 }
 if (typeof registerTableInheritanceTests === 'function') {
     registerTableInheritanceTests(testRunner, converter, emptyPageXML, assert);
+}
+if (typeof registerTableColspanTests === 'function') {
+    registerTableColspanTests(testRunner, converter, emptyPageXML, assert);
 }
 if (typeof registerCustomFontsTests === 'function') {
     registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);

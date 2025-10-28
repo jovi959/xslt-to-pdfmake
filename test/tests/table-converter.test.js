@@ -371,11 +371,166 @@ function registerTableConverterTests(testRunner, converter, testXML, assert) {
     });
 }
 
+// ==================== Column Spanning Unit Tests ====================
+function registerTableColspanUnitTests(testRunner, converter, tableColspanXML, assert) {
+    const parseXML = (xmlString) => {
+        if (typeof DOMParser !== 'undefined') {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xmlString, 'text/xml');
+            return doc.documentElement;
+        } else {
+            const { parseXMLString } = require('../test-cli.js');
+            const doc = parseXMLString(xmlString);
+            return doc.documentElement;
+        }
+    };
+    
+    testRunner.addTest('Table: Should handle colspan of 2 at start of row', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="33%"/>
+  <fo:table-column column-width="33%"/>
+  <fo:table-column column-width="34%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell number-columns-spanned="2">
+        <fo:block>Spans 2</fo:block>
+      </fo:table-cell>
+      <fo:table-cell>
+        <fo:block>Cell C</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        assert.equal(result.table.body.length, 1, 'Should have 1 row');
+        const row = result.table.body[0];
+        assert.equal(row.length, 3, 'Row should have 3 cells (1 spanning + 1 placeholder + 1 normal)');
+        
+        // Check spanning cell
+        assert.ok(typeof row[0] === 'object', 'First cell should be an object');
+        assert.equal(row[0].colSpan, 2, 'First cell should have colSpan of 2');
+        assert.equal(row[0].text, 'Spans 2', 'First cell should have correct text');
+        
+        // Check placeholder
+        assert.deepEqual(row[1], {}, 'Second cell should be empty placeholder');
+        
+        // Check normal cell
+        assert.equal(row[2], 'Cell C', 'Third cell should be normal');
+    });
+
+    testRunner.addTest('Table: Should handle colspan of 2 in middle of row', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="33%"/>
+  <fo:table-column column-width="33%"/>
+  <fo:table-column column-width="34%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell>
+        <fo:block>Cell A</fo:block>
+      </fo:table-cell>
+      <fo:table-cell number-columns-spanned="2">
+        <fo:block>Spans 2</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        const row = result.table.body[0];
+        assert.equal(row.length, 3, 'Row should have 3 cells');
+        assert.equal(row[0], 'Cell A', 'First cell should be normal');
+        assert.equal(row[1].colSpan, 2, 'Second cell should have colSpan of 2');
+        assert.deepEqual(row[2], {}, 'Third cell should be empty placeholder');
+    });
+
+    testRunner.addTest('Table: Should handle colspan spanning all columns', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="33%"/>
+  <fo:table-column column-width="33%"/>
+  <fo:table-column column-width="34%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell number-columns-spanned="3">
+        <fo:block>Spans all 3</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        const row = result.table.body[0];
+        assert.equal(row.length, 3, 'Row should have 3 cells (1 spanning + 2 placeholders)');
+        assert.equal(row[0].colSpan, 3, 'First cell should have colSpan of 3');
+        assert.deepEqual(row[1], {}, 'Second cell should be empty placeholder');
+        assert.deepEqual(row[2], {}, 'Third cell should be empty placeholder');
+    });
+
+    testRunner.addTest('Table: Should handle multiple colspans in same row', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="25%"/>
+  <fo:table-column column-width="25%"/>
+  <fo:table-column column-width="25%"/>
+  <fo:table-column column-width="25%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell number-columns-spanned="2">
+        <fo:block>Spans 2 (A+B)</fo:block>
+      </fo:table-cell>
+      <fo:table-cell number-columns-spanned="2">
+        <fo:block>Spans 2 (C+D)</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        const row = result.table.body[0];
+        assert.equal(row.length, 4, 'Row should have 4 cells (2 spanning + 2 placeholders)');
+        assert.equal(row[0].colSpan, 2, 'First cell should span 2');
+        assert.deepEqual(row[1], {}, 'Second cell should be placeholder');
+        assert.equal(row[2].colSpan, 2, 'Third cell should span 2');
+        assert.deepEqual(row[3], {}, 'Fourth cell should be placeholder');
+    });
+
+    testRunner.addTest('Table: Should handle colspan with borders', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="50%"/>
+  <fo:table-column column-width="50%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell number-columns-spanned="2" border="solid">
+        <fo:block>Spans both with border</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        const row = result.table.body[0];
+        assert.equal(row.length, 2, 'Row should have 2 cells (1 spanning + 1 placeholder)');
+        assert.equal(row[0].colSpan, 2, 'Cell should have colSpan');
+        assert.ok(row[0].border, 'Cell should have border');
+        assert.deepEqual(row[0].border, [true, true, true, true], 'Border should be on all sides');
+    });
+}
+
 // Export for both browser and Node.js
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { registerTableConverterTests };
+    module.exports = { registerTableConverterTests, registerTableColspanUnitTests };
 }
 if (typeof window !== 'undefined') {
     window.registerTableConverterTests = registerTableConverterTests;
+    window.registerTableColspanUnitTests = registerTableColspanUnitTests;
 }
 
