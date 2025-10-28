@@ -492,6 +492,7 @@
     <script src="tests/inheritance-preprocessor.test.js"></script>
     <script src="tests/whitespace-normalization.test.js"></script>
     <script src="tests/self-closing-block.test.js"></script>
+    <script src="tests/special-attributes.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -519,6 +520,7 @@
         let inlineConversionXML = null;
         let integratedConversionXML = null;
         let inheritanceExamplesXML = null;
+        let specialFeaturesXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -553,6 +555,7 @@
                 inlineConversionXML = await loadTestFile('data/inline_conversion.xslt');
                 integratedConversionXML = await loadTestFile('data/integrated_conversion.xslt');
                 inheritanceExamplesXML = await loadTestFile('data/inheritance_examples.xslt');
+                specialFeaturesXML = await loadTestFile('data/special_features.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -581,7 +584,10 @@
                 { registerFn: registerNestedBlockStylingTests, xml: blockConversionXML, name: 'block_conversion.xslt' },
                 { registerFn: registerInlineConverterTests, xml: inlineConversionXML, name: 'inline_conversion.xslt' },
                 { registerFn: registerIntegratedConversionTests, xml: integratedConversionXML, name: 'integrated_conversion.xslt' },
-                { registerFn: registerInheritancePreprocessorTests, xml: inheritanceExamplesXML, name: 'inheritance_examples.xslt' }
+                { registerFn: registerInheritancePreprocessorTests, xml: inheritanceExamplesXML, name: 'inheritance_examples.xslt' },
+                { registerFn: registerWhitespaceNormalizationTests, xml: specialFeaturesXML, name: 'special_features.xslt' },
+                { registerFn: registerSelfClosingBlockTests, xml: specialFeaturesXML, name: 'special_features.xslt' },
+                { registerFn: registerSpecialAttributesTests, xml: specialFeaturesXML, name: 'special_features.xslt' }
             ];
             
             // Register each test suite and map to its data file

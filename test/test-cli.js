@@ -891,6 +891,7 @@ async function main() {
     const { registerInheritancePreprocessorTests } = require('./tests/inheritance-preprocessor.test.js');
     const { registerWhitespaceNormalizationTests } = require('./tests/whitespace-normalization.test.js');
     const { registerSelfClosingBlockTests } = require('./tests/self-closing-block.test.js');
+    const { registerSpecialAttributesTests } = require('./tests/special-attributes.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -912,6 +913,7 @@ async function main() {
     registerInheritancePreprocessorTests(testRunner, converter, emptyPageXML, assert);
     registerWhitespaceNormalizationTests(testRunner, converter, emptyPageXML, assert);
     registerSelfClosingBlockTests(testRunner, converter, emptyPageXML, assert);
+    registerSpecialAttributesTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests
     await testRunner.runTests();

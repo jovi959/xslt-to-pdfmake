@@ -223,6 +223,23 @@ function parseLineHeight(lineHeight) {
 }
 
 /**
+ * Parses page-break-before attribute (generic, works for any element)
+ * @param {string} pageBreakBefore - Page break value (e.g., "always", "auto", "avoid")
+ * @returns {string|undefined} 'before', 'after', or undefined
+ */
+function parsePageBreak(pageBreakBefore) {
+    if (!pageBreakBefore) return undefined;
+    
+    const value = pageBreakBefore.toLowerCase().trim();
+    if (value === 'always') {
+        return 'before';
+    }
+    
+    // Could add support for 'after' if needed
+    return undefined;
+}
+
+/**
  * Parses shorthand border attribute (e.g., "2px solid black")
  * @param {string} borderStr - Border shorthand string
  * @returns {Object} Object with width, style, and color properties
@@ -399,11 +416,18 @@ function convertBlock(node, children, traverse) {
         return null;
     }
 
-    // Apply HTML-like whitespace normalization (all 3 steps in one call)
-    // 1. Normalize whitespace (newlines → spaces, collapse multiple)
-    // 2. Trim edge spaces
-    // 3. Insert spaces between consecutive inline elements
-    children = WhitespaceUtils.normalizeChildren(children);
+    // Check for linefeed-treatment="preserve" attribute
+    const linefeedTreatment = node.getAttribute('linefeed-treatment');
+    const preserveLinefeeds = linefeedTreatment === 'preserve';
+    
+    // Apply HTML-like whitespace normalization UNLESS linefeed-treatment="preserve"
+    // When preserving linefeeds, we keep actual newlines as \n in the text
+    if (!preserveLinefeeds) {
+        // 1. Normalize whitespace (newlines → spaces, collapse multiple)
+        // 2. Trim edge spaces
+        // 3. Insert spaces between consecutive inline elements
+        children = WhitespaceUtils.normalizeChildren(children);
+    }
 
     // Extract and convert attributes first (we'll need these to style text children)
     const bold = parseFontWeight(node.getAttribute('font-weight'));
@@ -415,6 +439,7 @@ function convertBlock(node, children, traverse) {
     const font = parseFontFamily(node.getAttribute('font-family'));
     const background = parseBackgroundColor(node.getAttribute('background-color'));
     const lineHeight = parseLineHeight(node.getAttribute('line-height'));
+    const pageBreak = parsePageBreak(node.getAttribute('page-break-before'));
 
     // Build the text content
     let textContent;
@@ -518,6 +543,11 @@ function convertBlock(node, children, traverse) {
             tableStructure.margin = margin;
         }
         
+        // Apply page break if specified
+        if (pageBreak !== undefined) {
+            tableStructure.pageBreak = pageBreak;
+        }
+        
         return tableStructure;
     }
     
@@ -535,6 +565,7 @@ function convertBlock(node, children, traverse) {
     if (background !== undefined) result.background = background;
     if (lineHeight !== undefined) result.lineHeight = lineHeight;
     if (margin !== undefined) result.margin = margin;
+    if (pageBreak !== undefined) result.pageBreak = pageBreak;
 
     // If result only has text property and it's a string, return just the string
     if (Object.keys(result).length === 1 && typeof result.text === 'string') {
@@ -558,6 +589,7 @@ if (typeof module !== 'undefined' && module.exports) {
         parseFontFamily,
         parseBackgroundColor,
         parseLineHeight,
+        parsePageBreak,
         parseNumericValue,
         parseBorderWidth,
         parseBorderShorthand,
@@ -579,6 +611,7 @@ if (typeof window !== 'undefined') {
         parseFontFamily,
         parseBackgroundColor,
         parseLineHeight,
+        parsePageBreak,
         parseNumericValue,
         parseBorderWidth,
         parseBorderShorthand,

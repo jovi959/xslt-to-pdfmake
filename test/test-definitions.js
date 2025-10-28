@@ -53,6 +53,9 @@ if (typeof registerWhitespaceNormalizationTests === 'function') {
 if (typeof registerSelfClosingBlockTests === 'function') {
     registerSelfClosingBlockTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerSpecialAttributesTests === 'function') {
+    registerSpecialAttributesTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js
