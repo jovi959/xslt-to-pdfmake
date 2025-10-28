@@ -253,6 +253,7 @@ Example:
     <!-- Load dependencies -->
     <script src="lib/pdfmake.min.js"></script>
     <script src="lib/vfs_fonts.js"></script>
+    <script src="lib/custom-fonts.js"></script>
     
     <!-- Load converter modules -->
     <script src="src/whitespace-utils.js"></script>
@@ -279,6 +280,17 @@ Example:
 
         // Initialize converter
         function init() {
+            // Register custom fonts with PDFMake
+            if (typeof customVfsFonts !== 'undefined' && typeof customFonts !== 'undefined') {
+                // Merge custom fonts into PDFMake's VFS
+                pdfMake.vfs = Object.assign({}, pdfMake.vfs, customVfsFonts);
+                
+                // Register custom fonts
+                pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, customFonts);
+                
+                console.log('✅ Custom fonts registered:', Object.keys(customFonts));
+            }
+            
             converter = new XSLToPDFMakeConverter();
             console.log('✅ Converter initialized');
         }
@@ -415,6 +427,13 @@ Example:
 
 <fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" text-align="center" color="#FF0000">
   Centered Red Text
+</fo:block>
+
+<fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" 
+          font-family="Wingdings" 
+          font-size="18pt" 
+          text-align="center">
+  ✓✗★✉☎
 </fo:block>`;
             convert();
         }

@@ -65,6 +65,9 @@ if (typeof registerTableIntegrationTests === 'function') {
 if (typeof registerTableInheritanceTests === 'function') {
     registerTableInheritanceTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerCustomFontsTests === 'function') {
+    registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

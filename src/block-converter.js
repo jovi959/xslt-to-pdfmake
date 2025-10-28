@@ -184,11 +184,16 @@ function parseFontFamily(fontFamily) {
     const trimmed = fontFamily.trim();
     
     // If it contains commas, take the first font
+    let fontName;
     if (trimmed.includes(',')) {
-        return trimmed.split(',')[0].trim().replace(/['"]/g, '');
+        fontName = trimmed.split(',')[0].trim().replace(/['"]/g, '');
+    } else {
+        fontName = trimmed.replace(/['"]/g, '');
     }
     
-    return trimmed.replace(/['"]/g, '');
+    // PDFMake font names are case-sensitive and typically lowercase
+    // Convert to lowercase for consistent matching
+    return fontName.toLowerCase();
 }
 
 /**

@@ -88,9 +88,51 @@ function registerTableInheritanceTests(testRunner, converter, testXML, assert) {
         assert.equal(getAttr(block, 'text-align'), 'center', 'Block should inherit text-align from table-cell');
     });
 
+    testRunner.addTest('Table Inheritance: Should inherit font-size from table-cell to block', () => {
+        const xml = `<fo:table-cell xmlns:fo="http://www.w3.org/1999/XSL/Format" font-size="14pt">
+  <fo:block>Large text</fo:block>
+</fo:table-cell>`;
+        
+        const preprocessor = typeof window !== 'undefined' ? window.InheritancePreprocessor : require('../../src/preprocessor.js');
+        const tableConfig = typeof window !== 'undefined' ? window.TableInheritanceConfig : require('../../src/table-inheritance-config.js');
+        const config = tableConfig.getTableInheritanceConfig ? tableConfig.getTableInheritanceConfig() : tableConfig.TABLE_INHERITANCE_CONFIG;
+        
+        const result = preprocessor.preprocessInheritance(xml, config);
+        const element = parseXML(result);
+        
+        const block = findFirstChildByTagName(element, 'fo:block');
+        assert.ok(block, 'Should find block');
+        assert.equal(getAttr(block, 'font-size'), '14pt', 'Block should inherit font-size from table-cell');
+    });
+
+    testRunner.addTest('Table Inheritance: Should inherit font-size from table-cell to inline', () => {
+        const xml = `<fo:table-cell xmlns:fo="http://www.w3.org/1999/XSL/Format" font-size="16pt">
+  <fo:block>Text with <fo:inline>inline content</fo:inline></fo:block>
+</fo:table-cell>`;
+        
+        const preprocessor = typeof window !== 'undefined' ? window.InheritancePreprocessor : require('../../src/preprocessor.js');
+        const tableConfig = typeof window !== 'undefined' ? window.TableInheritanceConfig : require('../../src/table-inheritance-config.js');
+        const blockConfig = typeof window !== 'undefined' ? window.BlockInheritanceConfig : require('../../src/block-inheritance-config.js');
+        
+        const tableInheritanceConfig = tableConfig.getTableInheritanceConfig ? tableConfig.getTableInheritanceConfig() : tableConfig.TABLE_INHERITANCE_CONFIG;
+        const blockInheritanceConfig = blockConfig.getBlockInheritanceConfig ? blockConfig.getBlockInheritanceConfig() : blockConfig.BLOCK_INHERITANCE_CONFIG;
+        const mergedConfig = [...blockInheritanceConfig, ...tableInheritanceConfig];
+        
+        const result = preprocessor.preprocessInheritance(xml, mergedConfig);
+        const element = parseXML(result);
+        
+        const block = findFirstChildByTagName(element, 'fo:block');
+        const inline = findFirstChildByTagName(block, 'fo:inline');
+        
+        assert.ok(block, 'Should find block');
+        assert.ok(inline, 'Should find inline');
+        assert.equal(getAttr(block, 'font-size'), '16pt', 'Block should inherit font-size from table-cell');
+        assert.equal(getAttr(inline, 'font-size'), '16pt', 'Inline should inherit font-size from block');
+    });
+
     testRunner.addTest('Table Inheritance: Should inherit multiple attributes from table-cell', () => {
-        const xml = `<fo:table-cell xmlns:fo="http://www.w3.org/1999/XSL/Format" color="blue" text-align="right">
-  <fo:block>Right-aligned blue text</fo:block>
+        const xml = `<fo:table-cell xmlns:fo="http://www.w3.org/1999/XSL/Format" color="blue" text-align="right" font-size="18pt">
+  <fo:block>Right-aligned blue large text</fo:block>
 </fo:table-cell>`;
         
         const preprocessor = typeof window !== 'undefined' ? window.InheritancePreprocessor : require('../../src/preprocessor.js');
@@ -104,6 +146,7 @@ function registerTableInheritanceTests(testRunner, converter, testXML, assert) {
         assert.ok(block, 'Should find block');
         assert.equal(getAttr(block, 'color'), 'blue', 'Block should inherit color');
         assert.equal(getAttr(block, 'text-align'), 'right', 'Block should inherit text-align');
+        assert.equal(getAttr(block, 'font-size'), '18pt', 'Block should inherit font-size');
     });
 
     testRunner.addTest('Table Inheritance: Child block attribute should override table-cell', () => {
@@ -121,6 +164,23 @@ function registerTableInheritanceTests(testRunner, converter, testXML, assert) {
         const block = findFirstChildByTagName(element, 'fo:block');
         assert.ok(block, 'Should find block');
         assert.equal(getAttr(block, 'color'), 'green', 'Block color should remain green (child overrides parent)');
+    });
+
+    testRunner.addTest('Table Inheritance: Child block font-size should override table-cell', () => {
+        const xml = `<fo:table-cell xmlns:fo="http://www.w3.org/1999/XSL/Format" font-size="20pt">
+  <fo:block font-size="10pt">Small text overrides large</fo:block>
+</fo:table-cell>`;
+        
+        const preprocessor = typeof window !== 'undefined' ? window.InheritancePreprocessor : require('../../src/preprocessor.js');
+        const tableConfig = typeof window !== 'undefined' ? window.TableInheritanceConfig : require('../../src/table-inheritance-config.js');
+        const config = tableConfig.getTableInheritanceConfig ? tableConfig.getTableInheritanceConfig() : tableConfig.TABLE_INHERITANCE_CONFIG;
+        
+        const result = preprocessor.preprocessInheritance(xml, config);
+        const element = parseXML(result);
+        
+        const block = findFirstChildByTagName(element, 'fo:block');
+        assert.ok(block, 'Should find block');
+        assert.equal(getAttr(block, 'font-size'), '10pt', 'Block font-size should remain 10pt (child overrides parent)');
     });
 
     testRunner.addTest('Table Inheritance: Should inherit to inline elements', () => {

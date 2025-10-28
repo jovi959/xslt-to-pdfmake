@@ -10,7 +10,9 @@ const TABLE_INHERITANCE_CONFIG = [
         inheriters: ["block", "inline"],
         inheritable_attributes: [
             "color",
-            "text-align"
+            "text-align",
+            "font-size",
+            "font-family"
         ]
     }
 ];

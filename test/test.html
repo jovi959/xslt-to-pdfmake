@@ -466,6 +466,7 @@
 
     <script src="../lib/pdfmake.min.js"></script>
     <script src="../lib/vfs_fonts.js"></script>
+    <script src="../lib/custom-fonts.js"></script>
     
     <!-- Load converter modules (IN ORDER: dependencies first!) -->
     <script src="../src/whitespace-utils.js"></script>
@@ -498,6 +499,7 @@
     <script src="tests/table-converter.test.js"></script>
     <script src="tests/table-integration.test.js"></script>
     <script src="tests/table-inheritance.test.js"></script>
+    <script src="tests/custom-fonts.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -533,6 +535,13 @@
         // Initialize on page load
         window.addEventListener('load', async () => {
             console.log('🚀 Initializing test environment...');
+            
+            // Register custom fonts with PDFMake
+            if (typeof customVfsFonts !== 'undefined' && typeof customFonts !== 'undefined') {
+                pdfMake.vfs = Object.assign({}, pdfMake.vfs, customVfsFonts);
+                pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, customFonts);
+                console.log('✅ Custom fonts registered:', Object.keys(customFonts));
+            }
             
             // Create converter instance
             converter = new XSLToPDFMakeConverter();

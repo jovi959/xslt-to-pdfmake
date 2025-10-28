@@ -919,6 +919,7 @@ async function main() {
     const { registerTableConverterTests } = require('./tests/table-converter.test.js');
     const { registerTableIntegrationTests } = require('./tests/table-integration.test.js');
     const { registerTableInheritanceTests } = require('./tests/table-inheritance.test.js');
+    const { registerCustomFontsTests } = require('./tests/custom-fonts.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -944,6 +945,7 @@ async function main() {
     registerTableConverterTests(testRunner, converter, emptyPageXML, assert);
     registerTableIntegrationTests(testRunner, converter, emptyPageXML, assert);
     registerTableInheritanceTests(testRunner, converter, emptyPageXML, assert);
+    registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests
     await testRunner.runTests();
