@@ -500,6 +500,7 @@
     <script src="tests/table-integration.test.js"></script>
     <script src="tests/table-inheritance.test.js"></script>
     <script src="tests/table-colspan.test.js"></script>
+    <script src="tests/table-advanced-styling.test.js"></script>
     <script src="tests/custom-fonts.test.js"></script>
     
     <!-- Load test loader -->
@@ -531,6 +532,7 @@
         let specialFeaturesXML = null;
         let tableXML = null;
         let tableColspanXML = null;
+        let tableAdvancedStylingXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -575,6 +577,7 @@
                 specialFeaturesXML = await loadTestFile('data/special_features.xslt');
                 tableXML = await loadTestFile('data/table.xslt');
                 tableColspanXML = await loadTestFile('data/table_colspan.xslt');
+                tableAdvancedStylingXML = await loadTestFile('data/table_advanced_styling.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -612,6 +615,7 @@
                 { registerFn: registerTableIntegrationTests, xml: tableXML, name: 'table.xslt' },
                 { registerFn: registerTableInheritanceTests, xml: tableXML, name: 'table.xslt' },
                 { registerFn: registerTableColspanTests, xml: tableColspanXML, name: 'table_colspan.xslt' },
+                { registerFn: registerTableAdvancedStylingTests, xml: tableAdvancedStylingXML, name: 'table_advanced_styling.xslt' },
                 { registerFn: registerCustomFontsTests, xml: emptyPageXML, name: 'empty_page.xslt' }
             ];
             

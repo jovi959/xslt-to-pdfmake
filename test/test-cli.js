@@ -920,6 +920,7 @@ async function main() {
     const { registerTableIntegrationTests } = require('./tests/table-integration.test.js');
     const { registerTableInheritanceTests } = require('./tests/table-inheritance.test.js');
     const { registerTableColspanTests } = require('./tests/table-colspan.test.js');
+    const { registerTableAdvancedStylingTests } = require('./tests/table-advanced-styling.test.js');
     const { registerCustomFontsTests } = require('./tests/custom-fonts.test.js');
     
     // Load integrated conversion test data
@@ -931,6 +932,12 @@ async function main() {
     // Load table colspan test data
     const tableColspanXML = fs.readFileSync(
         path.join(__dirname, 'data', 'table_colspan.xslt'),
+        'utf-8'
+    );
+    
+    // Load table advanced styling test data
+    const tableAdvancedStylingXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'table_advanced_styling.xslt'),
         'utf-8'
     );
     
@@ -954,6 +961,7 @@ async function main() {
     registerTableIntegrationTests(testRunner, converter, emptyPageXML, assert);
     registerTableInheritanceTests(testRunner, converter, emptyPageXML, assert);
     registerTableColspanTests(testRunner, converter, tableColspanXML, assert);
+    registerTableAdvancedStylingTests(testRunner, converter, tableAdvancedStylingXML, assert);
     registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests

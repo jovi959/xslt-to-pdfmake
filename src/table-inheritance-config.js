@@ -11,6 +11,7 @@ const TABLE_INHERITANCE_CONFIG = [
         inheritable_attributes: [
             "color",
             "text-align",
+            "font-weight",
             "font-size",
             "font-family"
         ]

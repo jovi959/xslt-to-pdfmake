@@ -71,6 +71,9 @@ if (typeof registerTableInheritanceTests === 'function') {
 if (typeof registerTableColspanTests === 'function') {
     registerTableColspanTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerTableAdvancedStylingTests === 'function') {
+    registerTableAdvancedStylingTests(testRunner, converter, emptyPageXML, assert);
+}
 if (typeof registerCustomFontsTests === 'function') {
     registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
 }
