@@ -506,6 +506,7 @@
     <script src="tests/table-padding-to-margin.test.js"></script>
     <script src="tests/keep-properties.test.js"></script>
     <script src="tests/table-header.test.js"></script>
+    <script src="tests/block-individual-borders.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -629,7 +630,8 @@
                 { registerFn: registerCustomFontsTests, xml: emptyPageXML, name: 'empty_page.xslt' },
                 { registerFn: registerTablePaddingToMarginTests, xml: tablePaddingToMarginXML, name: 'table_padding_to_margin.xslt' },
                 { registerFn: registerKeepPropertiesTests, xml: keepPropertiesXML, name: 'keep_properties.xslt' },
-                { registerFn: registerTableHeaderTests, xml: tableHeaderXML, name: 'table_header.xslt' }
+                { registerFn: registerTableHeaderTests, xml: tableHeaderXML, name: 'table_header.xslt' },
+                { registerFn: registerBlockIndividualBordersTests, xml: emptyPageXML, name: 'empty_page.xslt' }
             ];
             
             // Register each test suite and map to its data file

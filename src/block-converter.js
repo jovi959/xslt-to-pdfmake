@@ -290,7 +290,125 @@ function parseBorderShorthand(borderStr) {
 }
 
 /**
- * Checks if a block has border properties
+ * Parses individual border properties for all sides
+ * @param {Element} node - The fo:block DOM element
+ * @returns {Object} Object with top, bottom, left, right border properties
+ */
+function parseIndividualBorders(node) {
+    // Parse shorthand first (applies to all sides)
+    const borderShorthand = parseBorderShorthand(node.getAttribute('border'));
+    
+    // Helper to determine if a side has any border definition
+    function hasBorderDef(width, color, style) {
+        return width !== undefined || color !== undefined || style !== undefined;
+    }
+    
+    // If shorthand has any properties, apply default width if not specified
+    const shorthandHasBorder = hasBorderDef(borderShorthand.width, borderShorthand.color, borderShorthand.style);
+    const defaultWidth = shorthandHasBorder && borderShorthand.width === undefined ? 0.5 : borderShorthand.width;
+    
+    // Individual side properties
+    const result = {
+        top: {
+            width: defaultWidth,
+            color: borderShorthand.color || '#000000',
+            style: borderShorthand.style || 'solid'
+        },
+        bottom: {
+            width: defaultWidth,
+            color: borderShorthand.color || '#000000',
+            style: borderShorthand.style || 'solid'
+        },
+        left: {
+            width: defaultWidth,
+            color: borderShorthand.color || '#000000',
+            style: borderShorthand.style || 'solid'
+        },
+        right: {
+            width: defaultWidth,
+            color: borderShorthand.color || '#000000',
+            style: borderShorthand.style || 'solid'
+        }
+    };
+    
+    // Parse general border properties (override shorthand)
+    const borderWidth = node.getAttribute('border-width');
+    const borderColor = node.getAttribute('border-color');
+    const borderStyle = node.getAttribute('border-style');
+    
+    // Check if general border properties exist (for default width logic)
+    const hasGeneralBorder = borderWidth || borderColor || borderStyle;
+    
+    if (borderWidth) {
+        const width = parseNumericValue(borderWidth);
+        result.top.width = result.bottom.width = result.left.width = result.right.width = width;
+    } else if (hasGeneralBorder && result.top.width === undefined) {
+        // Apply default width if general border props exist but no width specified
+        result.top.width = result.bottom.width = result.left.width = result.right.width = 0.5;
+    }
+    
+    if (borderColor) {
+        const color = parseColor(borderColor);
+        result.top.color = result.bottom.color = result.left.color = result.right.color = color;
+    }
+    if (borderStyle) {
+        result.top.style = result.bottom.style = result.left.style = result.right.style = borderStyle;
+    }
+    
+    // Parse individual side properties (highest priority - override everything)
+    // Top
+    const topWidth = node.getAttribute('border-top-width');
+    const topColor = node.getAttribute('border-top-color');
+    const topStyle = node.getAttribute('border-top-style');
+    const hasTopBorder = topWidth || topColor || topStyle;
+    
+    if (topWidth) result.top.width = parseNumericValue(topWidth);
+    else if (hasTopBorder && result.top.width === undefined) result.top.width = 0.5;
+    
+    if (topColor) result.top.color = parseColor(topColor);
+    if (topStyle) result.top.style = topStyle;
+    
+    // Bottom
+    const bottomWidth = node.getAttribute('border-bottom-width');
+    const bottomColor = node.getAttribute('border-bottom-color');
+    const bottomStyle = node.getAttribute('border-bottom-style');
+    const hasBottomBorder = bottomWidth || bottomColor || bottomStyle;
+    
+    if (bottomWidth) result.bottom.width = parseNumericValue(bottomWidth);
+    else if (hasBottomBorder && result.bottom.width === undefined) result.bottom.width = 0.5;
+    
+    if (bottomColor) result.bottom.color = parseColor(bottomColor);
+    if (bottomStyle) result.bottom.style = bottomStyle;
+    
+    // Left
+    const leftWidth = node.getAttribute('border-left-width');
+    const leftColor = node.getAttribute('border-left-color');
+    const leftStyle = node.getAttribute('border-left-style');
+    const hasLeftBorder = leftWidth || leftColor || leftStyle;
+    
+    if (leftWidth) result.left.width = parseNumericValue(leftWidth);
+    else if (hasLeftBorder && result.left.width === undefined) result.left.width = 0.5;
+    
+    if (leftColor) result.left.color = parseColor(leftColor);
+    if (leftStyle) result.left.style = leftStyle;
+    
+    // Right
+    const rightWidth = node.getAttribute('border-right-width');
+    const rightColor = node.getAttribute('border-right-color');
+    const rightStyle = node.getAttribute('border-right-style');
+    const hasRightBorder = rightWidth || rightColor || rightStyle;
+    
+    if (rightWidth) result.right.width = parseNumericValue(rightWidth);
+    else if (hasRightBorder && result.right.width === undefined) result.right.width = 0.5;
+    
+    if (rightColor) result.right.color = parseColor(rightColor);
+    if (rightStyle) result.right.style = rightStyle;
+    
+    return result;
+}
+
+/**
+ * Checks if a block has border properties (including individual sides)
  * @param {Element} node - The fo:block DOM element
  * @returns {boolean} true if block has border properties
  */
@@ -299,6 +417,18 @@ function hasBorder(node) {
               node.getAttribute('border-style') || 
               node.getAttribute('border-width') || 
               node.getAttribute('border-color') ||
+              node.getAttribute('border-top-style') ||
+              node.getAttribute('border-top-width') ||
+              node.getAttribute('border-top-color') ||
+              node.getAttribute('border-bottom-style') ||
+              node.getAttribute('border-bottom-width') ||
+              node.getAttribute('border-bottom-color') ||
+              node.getAttribute('border-left-style') ||
+              node.getAttribute('border-left-width') ||
+              node.getAttribute('border-left-color') ||
+              node.getAttribute('border-right-style') ||
+              node.getAttribute('border-right-width') ||
+              node.getAttribute('border-right-color') ||
               node.getAttribute('padding'));
 }
 
@@ -506,18 +636,14 @@ function convertBlock(node, children, traverse) {
     }
     
     // Check for border/padding properties
-    // Parse shorthand border attribute first (e.g., "2px solid black")
-    const borderShorthand = parseBorderShorthand(node.getAttribute('border'));
-    
-    // Individual attributes override shorthand
-    const borderStyle = node.getAttribute('border-style') || borderShorthand.style;
-    const borderWidth = parseBorderWidth(node.getAttribute('border-width')) || borderShorthand.width;
-    const borderColor = parseColor(node.getAttribute('border-color')) || borderShorthand.color;
     const padding = parsePadding(node.getAttribute('padding'));
     const margin = parseMargin(node.getAttribute('margin'));
     
     // If block has borders or padding, convert to table
     if (hasBorder(node)) {
+        // Parse individual border properties for each side
+        const borders = parseIndividualBorders(node);
+        
         // Build the cell content with text styling
         const cellContent = { text: textContent };
         if (bold !== undefined) cellContent.bold = bold;
@@ -527,16 +653,24 @@ function convertBlock(node, children, traverse) {
         if (color !== undefined) cellContent.color = color;
         if (alignment !== undefined) cellContent.alignment = alignment;
         
+        // Add background color (fillColor) to cell
+        if (background !== undefined) {
+            cellContent.fillColor = background;
+        }
+        
         // Convert padding to margin inside the cell
         if (padding !== undefined) {
             cellContent.margin = padding;
         }
         
-        // Check if actual border attributes are present (not just padding)
-        const hasBorderAttributes = borderStyle || borderWidth !== undefined || borderColor !== undefined;
+        // Determine which borders are actually present
+        const hasTopBorder = borders.top.width !== undefined && borders.top.width > 0;
+        const hasBottomBorder = borders.bottom.width !== undefined && borders.bottom.width > 0;
+        const hasLeftBorder = borders.left.width !== undefined && borders.left.width > 0;
+        const hasRightBorder = borders.right.width !== undefined && borders.right.width > 0;
         
-        // Set border on all sides based on whether border attributes are present
-        cellContent.border = hasBorderAttributes ? [true, true, true, true] : [false, false, false, false];
+        // Set border array: [left, top, right, bottom]
+        cellContent.border = [hasLeftBorder, hasTopBorder, hasRightBorder, hasBottomBorder];
         
         // Build the table structure
         const tableStructure = {
@@ -546,18 +680,68 @@ function convertBlock(node, children, traverse) {
             }
         };
         
-        // Add layout for border styling if any border attributes are specified
-        if (hasBorderAttributes) {
-            const lineWidth = borderWidth !== undefined ? borderWidth : 0.5;
-            const lineColor = borderColor !== undefined ? borderColor : '#000000';
-            
-            tableStructure.layout = {
-                hLineWidth: function() { return lineWidth; },
-                vLineWidth: function() { return lineWidth; },
-                hLineColor: function() { return lineColor; },
-                vLineColor: function() { return lineColor; }
-            };
-        }
+        // Add layout with individual border styling
+        // For a single-cell table: i=0 is top line, i=1 is bottom line (horizontal)
+        //                         i=0 is left line, i=1 is right line (vertical)
+        // If called without index (for backward compatibility), return top/left border
+        tableStructure.layout = {
+            hLineWidth: function(i, node) {
+                // Backward compatibility: if no index provided, return top border
+                if (i === undefined) {
+                    return borders.top.width !== undefined ? borders.top.width : 0;
+                }
+                if (i === 0) {
+                    // Top border
+                    return borders.top.width !== undefined ? borders.top.width : 0;
+                } else if (i === 1) {
+                    // Bottom border
+                    return borders.bottom.width !== undefined ? borders.bottom.width : 0;
+                }
+                return 0;
+            },
+            vLineWidth: function(i, node) {
+                // Backward compatibility: if no index provided, return left border
+                if (i === undefined) {
+                    return borders.left.width !== undefined ? borders.left.width : 0;
+                }
+                if (i === 0) {
+                    // Left border
+                    return borders.left.width !== undefined ? borders.left.width : 0;
+                } else if (i === 1) {
+                    // Right border
+                    return borders.right.width !== undefined ? borders.right.width : 0;
+                }
+                return 0;
+            },
+            hLineColor: function(i, node) {
+                // Backward compatibility: if no index provided, return top border color
+                if (i === undefined) {
+                    return borders.top.color || '#000000';
+                }
+                if (i === 0) {
+                    // Top border color
+                    return borders.top.color || '#000000';
+                } else if (i === 1) {
+                    // Bottom border color
+                    return borders.bottom.color || '#000000';
+                }
+                return '#000000';
+            },
+            vLineColor: function(i, node) {
+                // Backward compatibility: if no index provided, return left border color
+                if (i === undefined) {
+                    return borders.left.color || '#000000';
+                }
+                if (i === 0) {
+                    // Left border color
+                    return borders.left.color || '#000000';
+                } else if (i === 1) {
+                    // Right border color
+                    return borders.right.color || '#000000';
+                }
+                return '#000000';
+            }
+        };
         
         // Apply margin outside the table
         if (margin !== undefined) {
@@ -627,6 +811,7 @@ if (typeof module !== 'undefined' && module.exports) {
         parseNumericValue,
         parseBorderWidth,
         parseBorderShorthand,
+        parseIndividualBorders,
         parsePadding,
         parseMargin,
         hasBorder
@@ -649,6 +834,7 @@ if (typeof window !== 'undefined') {
         parseNumericValue,
         parseBorderWidth,
         parseBorderShorthand,
+        parseIndividualBorders,
         parsePadding,
         parseMargin,
         hasBorder

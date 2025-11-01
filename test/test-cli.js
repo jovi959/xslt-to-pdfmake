@@ -932,6 +932,7 @@ async function main() {
     const { registerTablePaddingToMarginTests } = require('./tests/table-padding-to-margin.test.js');
     const { registerKeepPropertiesTests } = require('./tests/keep-properties.test.js');
     const { registerTableHeaderTests } = require('./tests/table-header.test.js');
+    const { registerBlockIndividualBordersTests } = require('./tests/block-individual-borders.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -992,6 +993,7 @@ async function main() {
     registerTablePaddingToMarginTests(testRunner, converter, tablePaddingToMarginXML, assert);
     registerKeepPropertiesTests(testRunner, converter, keepPropertiesXML, assert);
     registerTableHeaderTests(testRunner, converter, tableHeaderXML, assert);
+    registerBlockIndividualBordersTests(testRunner, converter, emptyPageXML, assert);
 
     // Run all tests
     await testRunner.runTests();
