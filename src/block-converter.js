@@ -355,7 +355,38 @@ function parseIndividualBorders(node) {
         result.top.style = result.bottom.style = result.left.style = result.right.style = borderStyle;
     }
     
-    // Parse individual side properties (highest priority - override everything)
+    // Parse individual side shorthand (border-top="...", border-bottom="...", etc.)
+    // These override general properties but are overridden by individual width/color/style
+    const topShorthand = parseBorderShorthand(node.getAttribute('border-top'));
+    const bottomShorthand = parseBorderShorthand(node.getAttribute('border-bottom'));
+    const leftShorthand = parseBorderShorthand(node.getAttribute('border-left'));
+    const rightShorthand = parseBorderShorthand(node.getAttribute('border-right'));
+    
+    // Apply top shorthand
+    if (topShorthand.width !== undefined) result.top.width = topShorthand.width;
+    else if ((topShorthand.color || topShorthand.style) && result.top.width === undefined) result.top.width = 0.5;
+    if (topShorthand.color) result.top.color = topShorthand.color;
+    if (topShorthand.style) result.top.style = topShorthand.style;
+    
+    // Apply bottom shorthand
+    if (bottomShorthand.width !== undefined) result.bottom.width = bottomShorthand.width;
+    else if ((bottomShorthand.color || bottomShorthand.style) && result.bottom.width === undefined) result.bottom.width = 0.5;
+    if (bottomShorthand.color) result.bottom.color = bottomShorthand.color;
+    if (bottomShorthand.style) result.bottom.style = bottomShorthand.style;
+    
+    // Apply left shorthand
+    if (leftShorthand.width !== undefined) result.left.width = leftShorthand.width;
+    else if ((leftShorthand.color || leftShorthand.style) && result.left.width === undefined) result.left.width = 0.5;
+    if (leftShorthand.color) result.left.color = leftShorthand.color;
+    if (leftShorthand.style) result.left.style = leftShorthand.style;
+    
+    // Apply right shorthand
+    if (rightShorthand.width !== undefined) result.right.width = rightShorthand.width;
+    else if ((rightShorthand.color || rightShorthand.style) && result.right.width === undefined) result.right.width = 0.5;
+    if (rightShorthand.color) result.right.color = rightShorthand.color;
+    if (rightShorthand.style) result.right.style = rightShorthand.style;
+    
+    // Parse individual side properties (highest priority - override everything including shorthand)
     // Top
     const topWidth = node.getAttribute('border-top-width');
     const topColor = node.getAttribute('border-top-color');
@@ -417,15 +448,19 @@ function hasBorder(node) {
               node.getAttribute('border-style') || 
               node.getAttribute('border-width') || 
               node.getAttribute('border-color') ||
+              node.getAttribute('border-top') ||
               node.getAttribute('border-top-style') ||
               node.getAttribute('border-top-width') ||
               node.getAttribute('border-top-color') ||
+              node.getAttribute('border-bottom') ||
               node.getAttribute('border-bottom-style') ||
               node.getAttribute('border-bottom-width') ||
               node.getAttribute('border-bottom-color') ||
+              node.getAttribute('border-left') ||
               node.getAttribute('border-left-style') ||
               node.getAttribute('border-left-width') ||
               node.getAttribute('border-left-color') ||
+              node.getAttribute('border-right') ||
               node.getAttribute('border-right-style') ||
               node.getAttribute('border-right-width') ||
               node.getAttribute('border-right-color') ||

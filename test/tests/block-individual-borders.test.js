@@ -190,6 +190,137 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
         assert.ok(!block.table, 'Should NOT convert to table structure');
         assert.ok(block.text, 'Should be a regular text block');
     });
+    
+    // ==================== Individual Border Shorthand Tests ====================
+    
+    testRunner.addTest('Should parse border-bottom shorthand', () => {
+        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
+              <fo:region-body margin="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block border-bottom="1px solid black" padding="5px 0px 5px 0px">
+                <fo:inline font-weight="bold">WCA72(2)</fo:inline>
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>`;
+        
+        const result = converter.convertToPDFMake(xslfo);
+        const block = result.content[0];
+        
+        assert.ok(block.table, 'Should convert to table structure');
+        assert.ok(block.layout, 'Should have layout for border styling');
+        
+        // Test border widths: only bottom should have border
+        assert.equal(block.layout.hLineWidth(0), 0, 'Top border should be 0 (none)');
+        assert.equal(block.layout.hLineWidth(1), 1, 'Bottom border should be 1px');
+        assert.equal(block.layout.vLineWidth(0), 0, 'Left border should be 0 (none)');
+        assert.equal(block.layout.vLineWidth(1), 0, 'Right border should be 0 (none)');
+        
+        // Test border colors
+        assert.equal(block.layout.hLineColor(1), 'black', 'Bottom border should be black');
+    });
+    
+    testRunner.addTest('Should parse border-top shorthand', () => {
+        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
+              <fo:region-body margin="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block border-top="2pt dashed red">
+                Content with top border
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>`;
+        
+        const result = converter.convertToPDFMake(xslfo);
+        const block = result.content[0];
+        
+        assert.ok(block.table, 'Should convert to table structure');
+        
+        // Test border widths: only top should have border
+        assert.equal(block.layout.hLineWidth(0), 2, 'Top border should be 2pt');
+        assert.equal(block.layout.hLineWidth(1), 0, 'Bottom border should be 0 (none)');
+        
+        // Test border colors
+        assert.equal(block.layout.hLineColor(0), 'red', 'Top border should be red');
+    });
+    
+    testRunner.addTest('Should parse border-left and border-right shorthand', () => {
+        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
+              <fo:region-body margin="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block border-left="3px solid green" border-right="1px solid blue">
+                Content with left and right borders
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>`;
+        
+        const result = converter.convertToPDFMake(xslfo);
+        const block = result.content[0];
+        
+        assert.ok(block.table, 'Should convert to table structure');
+        
+        // Test border widths
+        assert.equal(block.layout.hLineWidth(0), 0, 'Top border should be 0 (none)');
+        assert.equal(block.layout.hLineWidth(1), 0, 'Bottom border should be 0 (none)');
+        assert.equal(block.layout.vLineWidth(0), 3, 'Left border should be 3px');
+        assert.equal(block.layout.vLineWidth(1), 1, 'Right border should be 1px');
+        
+        // Test border colors
+        assert.equal(block.layout.vLineColor(0), 'green', 'Left border should be green');
+        assert.equal(block.layout.vLineColor(1), 'blue', 'Right border should be blue');
+    });
+    
+    testRunner.addTest('Should handle individual shorthand overriding general border', () => {
+        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
+              <fo:region-body margin="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block border="2px solid black" border-bottom="4px dashed red">
+                General border with bottom override
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>`;
+        
+        const result = converter.convertToPDFMake(xslfo);
+        const block = result.content[0];
+        
+        assert.ok(block.table, 'Should convert to table structure');
+        
+        // Test border widths: top/left/right should be 2px, bottom should be 4px (override)
+        assert.equal(block.layout.hLineWidth(0), 2, 'Top border should be 2px (from general border)');
+        assert.equal(block.layout.hLineWidth(1), 4, 'Bottom border should be 4px (from border-bottom)');
+        assert.equal(block.layout.vLineWidth(0), 2, 'Left border should be 2px (from general border)');
+        assert.equal(block.layout.vLineWidth(1), 2, 'Right border should be 2px (from general border)');
+        
+        // Test border colors
+        assert.equal(block.layout.hLineColor(0), 'black', 'Top border should be black');
+        assert.equal(block.layout.hLineColor(1), 'red', 'Bottom border should be red (override)');
+    });
 }
 
 // Export for both browser and Node.js
