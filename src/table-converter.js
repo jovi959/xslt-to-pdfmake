@@ -595,6 +595,15 @@ function convertTable(node, children, traverse) {
         _deps.KeepProperties.applyKeepTogether(node, tableStructure);
         _deps.KeepProperties.markKeepWithPrevious(node, tableStructure);
     }
+    
+    // Apply page-break-before attribute
+    // parsePageBreak is a generic function that works for any element
+    if (_deps.BlockConverter && _deps.BlockConverter.parsePageBreak) {
+        const pageBreak = _deps.BlockConverter.parsePageBreak(node.getAttribute('page-break-before'));
+        if (pageBreak !== undefined) {
+            tableStructure.pageBreak = pageBreak;
+        }
+    }
 
     return tableStructure;
 }
