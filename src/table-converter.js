@@ -344,14 +344,57 @@ function convertTableRow(node, traverse, tableMeta) {
  * @param {Element} node - The fo:table-body DOM element
  * @param {Function} traverse - Reference to traverse function
  * @param {Object} tableMeta - Metadata about table
+ * @param {Array} headerRows - Reference to headerRows array (for nested headers)
  * @returns {Array} Array of rows
  */
-function convertTableBody(node, traverse, tableMeta) {
+function convertTableBody(node, traverse, tableMeta, headerRows) {
     if (node.nodeName !== 'fo:table-body') {
         return null;
     }
 
     const body = [];
+    
+    // Process each child (table-row or malformed table-header)
+    if (node.childNodes) {
+        for (let i = 0; i < node.childNodes.length; i++) {
+            const child = node.childNodes[i];
+            
+            if (child.nodeType === 1) {
+                // Handle table-header nested inside table-body (malformed but common)
+                if (child.nodeName === 'fo:table-header') {
+                    const nestedHeaders = convertTableHeader(child, traverse, tableMeta);
+                    if (nestedHeaders && nestedHeaders.length > 0 && headerRows) {
+                        // Add to headerRows reference array
+                        headerRows.push(...nestedHeaders);
+                    }
+                }
+                // Handle normal table-row
+                else if (child.nodeName === 'fo:table-row') {
+                    const row = convertTableRow(child, traverse, tableMeta);
+                    if (row && row.length > 0) {
+                        body.push(row);
+                    }
+                }
+            }
+        }
+    }
+
+    return body;
+}
+
+/**
+ * Converts a <fo:table-header> element to PDFMake header rows array
+ * @param {Element} node - The fo:table-header DOM element
+ * @param {Function} traverse - Reference to traverse function
+ * @param {Object} tableMeta - Metadata about table
+ * @returns {Array} Array of header rows
+ */
+function convertTableHeader(node, traverse, tableMeta) {
+    if (node.nodeName !== 'fo:table-header') {
+        return null;
+    }
+
+    const headerRows = [];
     
     // Process each table-row child
     if (node.childNodes) {
@@ -361,13 +404,13 @@ function convertTableBody(node, traverse, tableMeta) {
             if (child.nodeType === 1 && child.nodeName === 'fo:table-row') {
                 const row = convertTableRow(child, traverse, tableMeta);
                 if (row && row.length > 0) {
-                    body.push(row);
+                    headerRows.push(row);
                 }
             }
         }
     }
 
-    return body;
+    return headerRows;
 }
 
 /**
@@ -495,18 +538,28 @@ function convertTable(node, children, traverse) {
     // Convert proportional widths to percentages
     const widths = convertProportionalWidths(rawWidths, tableWidth);
 
-    // Find and process table body
+    // Find and process table header and body
+    let headerRows = [];
     let body = [];
     
     if (node.childNodes) {
         for (let i = 0; i < node.childNodes.length; i++) {
             const child = node.childNodes[i];
             
-            if (child.nodeType === 1 && child.nodeName === 'fo:table-body') {
-                body = convertTableBody(child, traverse, tableMeta);
-                break;
+            if (child.nodeType === 1) {
+                if (child.nodeName === 'fo:table-header') {
+                    headerRows = convertTableHeader(child, traverse, tableMeta);
+                } else if (child.nodeName === 'fo:table-body') {
+                    // Pass headerRows array so nested headers can be collected
+                    body = convertTableBody(child, traverse, tableMeta, headerRows);
+                }
             }
         }
+    }
+
+    // Prepend header rows to body (PDFMake expects header rows at the top of body array)
+    if (headerRows && headerRows.length > 0) {
+        body = [...headerRows, ...body];
     }
 
     // Build layout object
@@ -520,6 +573,11 @@ function convertTable(node, children, traverse) {
         },
         layout: layout
     };
+    
+    // Add headerRows property if we have headers
+    if (headerRows && headerRows.length > 0) {
+        tableStructure.table.headerRows = headerRows.length;
+    }
     
     // Handle padding on table element - convert to margin
     // In XSL-FO, padding on the table container should be interpreted as 
@@ -545,6 +603,7 @@ function convertTable(node, children, traverse) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         convertTable,
+        convertTableHeader,
         convertTableBody,
         convertTableRow,
         convertTableCell,
@@ -560,6 +619,7 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
     window.TableConverter = {
         convertTable,
+        convertTableHeader,
         convertTableBody,
         convertTableRow,
         convertTableCell,

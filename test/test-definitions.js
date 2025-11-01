@@ -83,6 +83,9 @@ if (typeof registerTablePaddingToMarginTests === 'function') {
 if (typeof registerKeepPropertiesTests === 'function') {
     registerKeepPropertiesTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerTableHeaderTests === 'function') {
+    registerTableHeaderTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

@@ -931,6 +931,7 @@ async function main() {
     const { registerCustomFontsTests } = require('./tests/custom-fonts.test.js');
     const { registerTablePaddingToMarginTests } = require('./tests/table-padding-to-margin.test.js');
     const { registerKeepPropertiesTests } = require('./tests/keep-properties.test.js');
+    const { registerTableHeaderTests } = require('./tests/table-header.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -960,6 +961,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load table header test data
+    const tableHeaderXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'table_header.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -984,6 +991,7 @@ async function main() {
     registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
     registerTablePaddingToMarginTests(testRunner, converter, tablePaddingToMarginXML, assert);
     registerKeepPropertiesTests(testRunner, converter, keepPropertiesXML, assert);
+    registerTableHeaderTests(testRunner, converter, tableHeaderXML, assert);
 
     // Run all tests
     await testRunner.runTests();

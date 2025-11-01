@@ -505,6 +505,7 @@
     <script src="tests/custom-fonts.test.js"></script>
     <script src="tests/table-padding-to-margin.test.js"></script>
     <script src="tests/keep-properties.test.js"></script>
+    <script src="tests/table-header.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -538,6 +539,7 @@
         let tableAdvancedStylingXML = null;
         let tablePaddingToMarginXML = null;
         let keepPropertiesXML = null;
+        let tableHeaderXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -585,6 +587,7 @@
                 tableAdvancedStylingXML = await loadTestFile('data/table_advanced_styling.xslt');
                 tablePaddingToMarginXML = await loadTestFile('data/table_padding_to_margin.xslt');
                 keepPropertiesXML = await loadTestFile('data/keep_properties.xslt');
+                tableHeaderXML = await loadTestFile('data/table_header.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -625,7 +628,8 @@
                 { registerFn: registerTableAdvancedStylingTests, xml: tableAdvancedStylingXML, name: 'table_advanced_styling.xslt' },
                 { registerFn: registerCustomFontsTests, xml: emptyPageXML, name: 'empty_page.xslt' },
                 { registerFn: registerTablePaddingToMarginTests, xml: tablePaddingToMarginXML, name: 'table_padding_to_margin.xslt' },
-                { registerFn: registerKeepPropertiesTests, xml: keepPropertiesXML, name: 'keep_properties.xslt' }
+                { registerFn: registerKeepPropertiesTests, xml: keepPropertiesXML, name: 'keep_properties.xslt' },
+                { registerFn: registerTableHeaderTests, xml: tableHeaderXML, name: 'table_header.xslt' }
             ];
             
             // Register each test suite and map to its data file
