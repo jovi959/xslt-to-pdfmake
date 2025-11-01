@@ -497,6 +497,7 @@ class XSLToPDFMakeConverter {
             // Load conversion modules
             const { traverse } = require('../src/recursive-traversal.js');
             const { convertBlock } = require('../src/block-converter.js');
+            const { processKeepWithPrevious } = require('../src/keep-properties.js');
             
             // Try to load table converter (optional)
             let convertTable = null;
@@ -568,6 +569,10 @@ class XSLToPDFMakeConverter {
                 }
             }
 
+            // Post-process for keep-with-previous properties
+            if (processKeepWithPrevious) {
+                return processKeepWithPrevious(content);
+            }
             return content;
         } catch (error) {
             console.error('Error extracting content:', error);
@@ -628,7 +633,9 @@ class XSLToPDFMakeConverter {
         return null;
     }
 
-    convertToPDFMake(xslfoXml) {
+    convertToPDFMake(xslfoXml, options = {}) {
+        // Note: options.skipPreprocessing is accepted for API compatibility
+        // but test-cli.js doesn't have preprocessing, so it's effectively always skipped
         const pageMasters = this.parsePageMasters(xslfoXml);
         const pageSequences = this.parsePageSequences(xslfoXml);
 
@@ -923,6 +930,7 @@ async function main() {
     const { registerTableAdvancedStylingTests } = require('./tests/table-advanced-styling.test.js');
     const { registerCustomFontsTests } = require('./tests/custom-fonts.test.js');
     const { registerTablePaddingToMarginTests } = require('./tests/table-padding-to-margin.test.js');
+    const { registerKeepPropertiesTests } = require('./tests/keep-properties.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -945,6 +953,10 @@ async function main() {
     // Load table padding to margin test data
     const tablePaddingToMarginXML = fs.readFileSync(
         path.join(__dirname, 'data', 'table_padding_to_margin.xslt'),
+        'utf-8'
+    );
+    const keepPropertiesXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'keep_properties.xslt'),
         'utf-8'
     );
     
@@ -971,6 +983,7 @@ async function main() {
     registerTableAdvancedStylingTests(testRunner, converter, tableAdvancedStylingXML, assert);
     registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
     registerTablePaddingToMarginTests(testRunner, converter, tablePaddingToMarginXML, assert);
+    registerKeepPropertiesTests(testRunner, converter, keepPropertiesXML, assert);
 
     // Run all tests
     await testRunner.runTests();

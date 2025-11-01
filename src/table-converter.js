@@ -11,12 +11,13 @@
 const _deps = (function() {
     // Check for real browser environment (not Node.js with fake window)
     const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
-    let BlockConverter, WhitespaceUtils, RecursiveTraversal;
+    let BlockConverter, WhitespaceUtils, RecursiveTraversal, KeepProperties;
     
     if (isBrowser) {
         BlockConverter = window.BlockConverter;
         WhitespaceUtils = window.WhitespaceUtils;
         RecursiveTraversal = window.RecursiveTraversal;
+        KeepProperties = window.KeepProperties;
         
         // Validate dependencies are loaded (browser only)
         if (!BlockConverter) {
@@ -42,9 +43,10 @@ const _deps = (function() {
         BlockConverter = require('./block-converter.js');
         WhitespaceUtils = require('./whitespace-utils.js');
         RecursiveTraversal = require('./recursive-traversal.js');
+        KeepProperties = require('./keep-properties.js');
     }
     
-    return { BlockConverter, WhitespaceUtils, RecursiveTraversal };
+    return { BlockConverter, WhitespaceUtils, RecursiveTraversal, KeepProperties };
 })();
 
 /**
@@ -528,6 +530,12 @@ function convertTable(node, children, traverse) {
         if (margin) {
             tableStructure.margin = margin;
         }
+    }
+    
+    // Apply keep properties (keep-together and keep-with-previous)
+    if (_deps.KeepProperties) {
+        _deps.KeepProperties.applyKeepTogether(node, tableStructure);
+        _deps.KeepProperties.markKeepWithPrevious(node, tableStructure);
     }
 
     return tableStructure;

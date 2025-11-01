@@ -6,6 +6,22 @@
  */
 
 /**
+ * Get dependencies - load keep properties module
+ */
+const _blockDeps = (function() {
+    const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+    let KeepProperties;
+    
+    if (isBrowser) {
+        KeepProperties = window.KeepProperties;
+    } else if (typeof require === 'function') {
+        KeepProperties = require('./keep-properties.js');
+    }
+    
+    return { KeepProperties };
+})();
+
+/**
  * Converts font-weight attribute to PDFMake bold property
  * @param {string} fontWeight - CSS font-weight value
  * @returns {boolean|undefined} true if bold, undefined otherwise
@@ -553,6 +569,12 @@ function convertBlock(node, children, traverse) {
             tableStructure.pageBreak = pageBreak;
         }
         
+        // Apply keep properties (keep-together and keep-with-previous)
+        if (_blockDeps.KeepProperties) {
+            _blockDeps.KeepProperties.applyKeepTogether(node, tableStructure);
+            _blockDeps.KeepProperties.markKeepWithPrevious(node, tableStructure);
+        }
+        
         return tableStructure;
     }
     
@@ -572,8 +594,15 @@ function convertBlock(node, children, traverse) {
     if (margin !== undefined) result.margin = margin;
     if (pageBreak !== undefined) result.pageBreak = pageBreak;
 
+    // Apply keep properties (keep-together and keep-with-previous)
+    if (_blockDeps.KeepProperties) {
+        _blockDeps.KeepProperties.applyKeepTogether(node, result);
+        _blockDeps.KeepProperties.markKeepWithPrevious(node, result);
+    }
+
     // If result only has text property and it's a string, return just the string
-    if (Object.keys(result).length === 1 && typeof result.text === 'string') {
+    // BUT: Don't simplify if we have keep-with-previous marker
+    if (Object.keys(result).length === 1 && typeof result.text === 'string' && !result._keepWithPrevious) {
         return result.text;
     }
 

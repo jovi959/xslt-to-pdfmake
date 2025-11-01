@@ -471,6 +471,7 @@
     <!-- Load converter modules (IN ORDER: dependencies first!) -->
     <script src="../src/whitespace-utils.js"></script>
     <script src="../src/recursive-traversal.js"></script>
+    <script src="../src/keep-properties.js"></script>
     <script src="../src/block-converter.js"></script>
     <script src="../src/table-converter.js"></script>
     <script src="../src/preprocessor.js"></script>
@@ -503,6 +504,7 @@
     <script src="tests/table-advanced-styling.test.js"></script>
     <script src="tests/custom-fonts.test.js"></script>
     <script src="tests/table-padding-to-margin.test.js"></script>
+    <script src="tests/keep-properties.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -535,6 +537,7 @@
         let tableColspanXML = null;
         let tableAdvancedStylingXML = null;
         let tablePaddingToMarginXML = null;
+        let keepPropertiesXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -581,6 +584,7 @@
                 tableColspanXML = await loadTestFile('data/table_colspan.xslt');
                 tableAdvancedStylingXML = await loadTestFile('data/table_advanced_styling.xslt');
                 tablePaddingToMarginXML = await loadTestFile('data/table_padding_to_margin.xslt');
+                keepPropertiesXML = await loadTestFile('data/keep_properties.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -620,7 +624,8 @@
                 { registerFn: registerTableColspanTests, xml: tableColspanXML, name: 'table_colspan.xslt' },
                 { registerFn: registerTableAdvancedStylingTests, xml: tableAdvancedStylingXML, name: 'table_advanced_styling.xslt' },
                 { registerFn: registerCustomFontsTests, xml: emptyPageXML, name: 'empty_page.xslt' },
-                { registerFn: registerTablePaddingToMarginTests, xml: tablePaddingToMarginXML, name: 'table_padding_to_margin.xslt' }
+                { registerFn: registerTablePaddingToMarginTests, xml: tablePaddingToMarginXML, name: 'table_padding_to_margin.xslt' },
+                { registerFn: registerKeepPropertiesTests, xml: keepPropertiesXML, name: 'keep_properties.xslt' }
             ];
             
             // Register each test suite and map to its data file

@@ -395,7 +395,16 @@ class XSLToPDFMakeConverter {
         );
 
         // Extract and convert content (use preprocessed XML)
-        const content = this.extractContent(processedXml);
+        let content = this.extractContent(processedXml);
+        
+        // Post-process content for keep-with-previous properties
+        const keepProperties = typeof window !== 'undefined'
+            ? window.KeepProperties
+            : require('./keep-properties.js');
+        
+        if (keepProperties && keepProperties.processKeepWithPrevious) {
+            content = keepProperties.processKeepWithPrevious(content);
+        }
 
         // Create PDFMake definition
         const pdfMakeDefinition = {

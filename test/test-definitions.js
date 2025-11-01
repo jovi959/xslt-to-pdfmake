@@ -80,6 +80,9 @@ if (typeof registerCustomFontsTests === 'function') {
 if (typeof registerTablePaddingToMarginTests === 'function') {
     registerTablePaddingToMarginTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerKeepPropertiesTests === 'function') {
+    registerKeepPropertiesTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js
