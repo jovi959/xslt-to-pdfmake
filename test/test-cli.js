@@ -922,6 +922,7 @@ async function main() {
     const { registerTableColspanTests } = require('./tests/table-colspan.test.js');
     const { registerTableAdvancedStylingTests } = require('./tests/table-advanced-styling.test.js');
     const { registerCustomFontsTests } = require('./tests/custom-fonts.test.js');
+    const { registerTablePaddingToMarginTests } = require('./tests/table-padding-to-margin.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -938,6 +939,12 @@ async function main() {
     // Load table advanced styling test data
     const tableAdvancedStylingXML = fs.readFileSync(
         path.join(__dirname, 'data', 'table_advanced_styling.xslt'),
+        'utf-8'
+    );
+    
+    // Load table padding to margin test data
+    const tablePaddingToMarginXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'table_padding_to_margin.xslt'),
         'utf-8'
     );
     
@@ -963,6 +970,7 @@ async function main() {
     registerTableColspanTests(testRunner, converter, tableColspanXML, assert);
     registerTableAdvancedStylingTests(testRunner, converter, tableAdvancedStylingXML, assert);
     registerCustomFontsTests(testRunner, converter, emptyPageXML, assert);
+    registerTablePaddingToMarginTests(testRunner, converter, tablePaddingToMarginXML, assert);
 
     // Run all tests
     await testRunner.runTests();

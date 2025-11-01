@@ -518,6 +518,17 @@ function convertTable(node, children, traverse) {
         },
         layout: layout
     };
+    
+    // Handle padding on table element - convert to margin
+    // In XSL-FO, padding on the table container should be interpreted as 
+    // spacing around the table (margin in PDFMake), not as cell padding
+    const tablePadding = node.getAttribute('padding');
+    if (tablePadding && _deps.BlockConverter && _deps.BlockConverter.parsePadding) {
+        const margin = _deps.BlockConverter.parsePadding(tablePadding);
+        if (margin) {
+            tableStructure.margin = margin;
+        }
+    }
 
     return tableStructure;
 }
