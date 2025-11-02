@@ -173,9 +173,9 @@ function registerBlockConverterTests(testRunner, converter, testXML, assert) {
         assert.equal(window.BlockConverter.parseFontWeight('700'), true, 'Should return true for 700');
     });
 
-    testRunner.addTest('parseFontWeight: Should return undefined for "normal"', () => {
+    testRunner.addTest('parseFontWeight: Should return false for "normal" to override parent bold', () => {
         const result = window.BlockConverter.parseFontWeight('normal');
-        assert.equal(result, undefined, 'Should return undefined for normal weight');
+        assert.equal(result, false, 'Should return false for normal weight (to explicitly override parent bold)');
     });
 
     testRunner.addTest('parseFontStyle: Should return true for "italic"', () => {

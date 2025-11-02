@@ -26,7 +26,7 @@ const _blockDeps = (function() {
 /**
  * Converts font-weight attribute to PDFMake bold property
  * @param {string} fontWeight - CSS font-weight value
- * @returns {boolean|undefined} true if bold, undefined otherwise
+ * @returns {boolean|undefined} true if bold, false if explicitly normal (to override parent), undefined if not specified
  */
 function parseFontWeight(fontWeight) {
     if (!fontWeight) return undefined;
@@ -34,6 +34,11 @@ function parseFontWeight(fontWeight) {
     const weight = fontWeight.toLowerCase();
     if (weight === 'bold' || weight === 'bolder' || parseInt(weight) >= 600) {
         return true;
+    }
+    
+    // Explicitly return false for "normal" to allow overriding parent bold
+    if (weight === 'normal' || weight === 'lighter' || parseInt(weight) < 600) {
+        return false;
     }
     
     return undefined;
@@ -666,28 +671,41 @@ function convertBlock(node, children, traverse) {
         if (children.length === 1 && typeof children[0] === 'string') {
             textContent = children[0];
         } else if (hasNestedBlocks) {
-            // Has nested blocks - wrap text children with this block's styling
-            textContent = children.map(child => {
-                if (typeof child === 'string') {
-                    // Text node with nested block siblings - wrap with parent styling
-                    const styledText = { text: child };
-                    if (bold !== undefined) styledText.bold = bold;
-                    if (italics !== undefined) styledText.italics = italics;
-                    if (decoration !== undefined) styledText.decoration = decoration;
-                    if (fontSize !== undefined) styledText.fontSize = fontSize;
-                    if (color !== undefined) styledText.color = color;
-                    if (alignment !== undefined) styledText.alignment = alignment;
-                    if (font !== undefined) styledText.font = font;
-                    if (background !== undefined) styledText.background = background;
-                    if (lineHeight !== undefined) styledText.lineHeight = lineHeight;
-                    
-                    // If no styling, return string as-is
-                    return Object.keys(styledText).length > 1 ? styledText : child;
-                } else {
-                    // Nested block - return as-is
-                    return child;
-                }
-            });
+            // Has nested blocks (inline elements or nested blocks)
+            // Check if these are inline elements (objects with text property) or actual nested blocks
+            const hasInlineElements = children.some(child => 
+                typeof child === 'object' && child !== null && !Array.isArray(child) && 
+                child.hasOwnProperty('text')
+            );
+            
+            if (hasInlineElements) {
+                // Has inline elements - text children inherit from parent, no need to wrap
+                // Inline elements with explicit styling (like bold: false) will override parent
+                textContent = children;
+            } else {
+                // Has actual nested blocks - wrap text children with this block's styling
+                textContent = children.map(child => {
+                    if (typeof child === 'string') {
+                        // Text node with nested block siblings - wrap with parent styling
+                        const styledText = { text: child };
+                        if (bold !== undefined) styledText.bold = bold;
+                        if (italics !== undefined) styledText.italics = italics;
+                        if (decoration !== undefined) styledText.decoration = decoration;
+                        if (fontSize !== undefined) styledText.fontSize = fontSize;
+                        if (color !== undefined) styledText.color = color;
+                        if (alignment !== undefined) styledText.alignment = alignment;
+                        if (font !== undefined) styledText.font = font;
+                        if (background !== undefined) styledText.background = background;
+                        if (lineHeight !== undefined) styledText.lineHeight = lineHeight;
+                        
+                        // If no styling, return string as-is
+                        return Object.keys(styledText).length > 1 ? styledText : child;
+                    } else {
+                        // Nested block - return as-is
+                        return child;
+                    }
+                });
+            }
         } else {
             // No nested blocks - use array of children as-is
             textContent = children.length === 1 ? children[0] : children;

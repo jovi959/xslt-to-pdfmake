@@ -92,6 +92,9 @@ if (typeof registerBlockIndividualBordersTests === 'function') {
 if (typeof registerStandaloneInlineTests === 'function') {
     registerStandaloneInlineTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerFontWeightOverrideTests === 'function') {
+    registerFontWeightOverrideTests(testRunner, converter, emptyPageXML, assert);
+}
 if (typeof registerLineHeightTests === 'function') {
     registerLineHeightTests(testRunner, converter, emptyPageXML, assert);
 }
