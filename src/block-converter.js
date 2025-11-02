@@ -232,25 +232,50 @@ function parseBackgroundColor(bgColor) {
 }
 
 /**
- * Parses line-height attribute
- * @param {string} lineHeight - Line height value (e.g., "1.5", "2em", "20px")
- * @returns {number|undefined} Line height value or undefined
+ * Parses line-height attribute and converts to PDFMake lineHeight multiplier
+ * 
+ * PDFMake uses lineHeight as a multiplier of fontSize:
+ * - Unitless values (e.g., "1.5") are used directly as multipliers
+ * - Values with units (e.g., "3pt", "12px") are converted to points, then divided by fontSize
+ * 
+ * @param {string} lineHeight - Line height value (e.g., "1.5", "3pt", "12px")
+ * @param {number} fontSize - Font size in points (default: 10 if not specified)
+ * @returns {number|undefined} Line height multiplier or undefined
  */
-function parseLineHeight(lineHeight) {
+function parseLineHeight(lineHeight, fontSize = 10) {
     if (!lineHeight) return undefined;
     
-    // If it's a unitless number, return as-is
+    // If it's a unitless number, return as-is (it's already a multiplier)
     if (/^\d+(\.\d+)?$/.test(lineHeight)) {
         return parseFloat(lineHeight);
     }
     
-    // For now, extract numeric value (PDFMake uses numeric line height)
-    const match = lineHeight.match(/^([\d.]+)/);
-    if (match) {
-        return parseFloat(match[1]);
+    // Parse value with unit
+    const match = lineHeight.match(/^([\d.]+)(pt|px|em|rem)?$/);
+    if (!match) return undefined;
+    
+    const value = parseFloat(match[1]);
+    const unit = match[2];
+    
+    // Convert to points based on unit
+    let valueInPoints;
+    switch (unit) {
+        case 'pt':
+            valueInPoints = value;
+            break;
+        case 'px':
+            valueInPoints = value * 0.75; // 1px ≈ 0.75pt
+            break;
+        case 'em':
+        case 'rem':
+            valueInPoints = value * fontSize; // em/rem relative to fontSize
+            break;
+        default:
+            valueInPoints = value;
     }
     
-    return undefined;
+    // Convert to multiplier by dividing by fontSize
+    return valueInPoints / fontSize;
 }
 
 /**
@@ -543,7 +568,8 @@ function convertBlock(node, children, traverse) {
     const alignment = parseAlignment(node.getAttribute('text-align'));
     const font = parseFontFamily(node.getAttribute('font-family'));
     const background = parseBackgroundColor(node.getAttribute('background-color'));
-    const lineHeight = parseLineHeight(node.getAttribute('line-height'));
+    // Parse line-height, passing fontSize for unit conversion (default to 10pt if no fontSize)
+    const lineHeight = parseLineHeight(node.getAttribute('line-height'), fontSize || 10);
     const pageBreak = parsePageBreak(node.getAttribute('page-break-before'));
 
     // Build the text content

@@ -509,6 +509,7 @@
     <script src="tests/table-header.test.js"></script>
     <script src="tests/block-individual-borders.test.js"></script>
     <script src="tests/standalone-inline.test.js"></script>
+    <script src="tests/line-height.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -545,6 +546,7 @@
         let tableHeaderXML = null;
         let blockIndividualBordersXML = null;
         let standaloneInlineXML = null;
+        let lineHeightXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -595,6 +597,7 @@
                 tableHeaderXML = await loadTestFile('data/table_header.xslt');
                 blockIndividualBordersXML = await loadTestFile('data/block_individual_borders.xslt');
                 standaloneInlineXML = await loadTestFile('data/standalone_inline.xslt');
+                lineHeightXML = await loadTestFile('data/line_height.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -638,7 +641,8 @@
                 { registerFn: registerKeepPropertiesTests, xml: keepPropertiesXML, name: 'keep_properties.xslt' },
                 { registerFn: registerTableHeaderTests, xml: tableHeaderXML, name: 'table_header.xslt' },
                 { registerFn: registerBlockIndividualBordersTests, xml: blockIndividualBordersXML, name: 'block_individual_borders.xslt' },
-                { registerFn: registerStandaloneInlineTests, xml: standaloneInlineXML, name: 'standalone_inline.xslt' }
+                { registerFn: registerStandaloneInlineTests, xml: standaloneInlineXML, name: 'standalone_inline.xslt' },
+                { registerFn: registerLineHeightTests, xml: lineHeightXML, name: 'line_height.xslt' }
             ];
             
             // Register each test suite and map to its data file

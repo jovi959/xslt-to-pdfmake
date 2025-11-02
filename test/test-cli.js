@@ -946,6 +946,7 @@ async function main() {
     const { registerTableHeaderTests } = require('./tests/table-header.test.js');
     const { registerBlockIndividualBordersTests } = require('./tests/block-individual-borders.test.js');
     const { registerStandaloneInlineTests } = require('./tests/standalone-inline.test.js');
+    const { registerLineHeightTests } = require('./tests/line-height.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -993,6 +994,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load line height test data
+    const lineHeightXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'line_height.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1020,6 +1027,7 @@ async function main() {
     registerTableHeaderTests(testRunner, converter, tableHeaderXML, assert);
     registerBlockIndividualBordersTests(testRunner, converter, blockIndividualBordersXML, assert);
     registerStandaloneInlineTests(testRunner, converter, standaloneInlineXML, assert);
+    registerLineHeightTests(testRunner, converter, lineHeightXML, assert);
 
     // Run all tests
     await testRunner.runTests();
