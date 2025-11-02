@@ -3,33 +3,18 @@
  * 
  * Tests for fo:block elements with individual border sides (top, bottom, left, right).
  * Each side can have its own width, color, and style.
+ * 
+ * Test data: test/data/block_individual_borders.xslt
  */
 
 function registerBlockIndividualBordersTests(testRunner, converter, blockBordersXML, assert) {
     
+    // Parse the test data once
+    const result = converter.convertToPDFMake(blockBordersXML);
+    
     testRunner.addTest('Should convert block with border-bottom override to table', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block text-align="center" border-style="solid" border-color="#000000" border-width="0.5pt" font-size="8pt" background-color="#DFDFDF" border-bottom-width="0px">
-                ORDER STATUS LEGEND
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        
-        assert.ok(result.content, 'Should have content');
-        assert.ok(result.content.length > 0, 'Should have at least one content item');
-        
-        const block = result.content[0];
+        // Block index 5: border-bottom-width="0px" override
+        const block = result.content[5];
         assert.ok(block.table, 'Should convert to table structure');
         assert.ok(block.layout, 'Should have layout for border styling');
         
@@ -56,24 +41,8 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     });
     
     testRunner.addTest('Should convert block with only top and bottom borders', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block border-top-style="solid" border-top-width="1pt" border-bottom-style="solid" border-bottom-width="3pt" border-bottom-color="#FF0000">
-                Block with only top and bottom borders
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        const block = result.content[0];
+        // Block index 6: Only top and bottom borders (explicit width/color/style)
+        const block = result.content[6];
         
         assert.ok(block.table, 'Should convert to table structure');
         assert.ok(block.layout, 'Should have layout for border styling');
@@ -94,24 +63,8 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     });
     
     testRunner.addTest('Should convert block with only left and right borders', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block border-left-style="solid" border-left-width="4pt" border-right-style="solid" border-right-width="1pt" border-right-color="blue">
-                Block with only left and right borders
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        const block = result.content[0];
+        // Block index 7: Only left and right borders (explicit width/color/style)
+        const block = result.content[7];
         
         assert.ok(block.table, 'Should convert to table structure');
         assert.ok(block.layout, 'Should have layout for border styling');
@@ -132,24 +85,8 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     });
     
     testRunner.addTest('Should handle block with mixed border properties', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block border-top-width="2pt" border-top-color="red" border-left-width="1pt" border-left-color="green" border-right-width="1pt" border-right-color="blue" border-bottom-width="2pt" border-bottom-color="yellow">
-                Block with all sides different
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        const block = result.content[0];
+        // Block index 8: All sides with different properties
+        const block = result.content[8];
         
         assert.ok(block.table, 'Should convert to table structure');
         assert.ok(block.layout, 'Should have layout for border styling');
@@ -168,24 +105,8 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     });
     
     testRunner.addTest('Should not convert block without borders to table', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block font-size="12pt">
-                Regular block without borders
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        const block = result.content[0];
+        // Block index 4: No borders (should not convert to table)
+        const block = result.content[4];
         
         assert.ok(!block.table, 'Should NOT convert to table structure');
         assert.ok(block.text, 'Should be a regular text block');
@@ -194,23 +115,7 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     // ==================== Individual Border Shorthand Tests ====================
     
     testRunner.addTest('Should parse border-bottom shorthand', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block border-bottom="1px solid black" padding="5px 0px 5px 0px">
-                <fo:inline font-weight="bold">WCA72(2)</fo:inline>
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
+        // Block index 0: border-bottom shorthand (user's specific case)
         const block = result.content[0];
         
         assert.ok(block.table, 'Should convert to table structure');
@@ -227,24 +132,8 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     });
     
     testRunner.addTest('Should parse border-top shorthand', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block border-top="2pt dashed red">
-                Content with top border
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        const block = result.content[0];
+        // Block index 1: border-top shorthand
+        const block = result.content[1];
         
         assert.ok(block.table, 'Should convert to table structure');
         
@@ -257,24 +146,8 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     });
     
     testRunner.addTest('Should parse border-left and border-right shorthand', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block border-left="3px solid green" border-right="1px solid blue">
-                Content with left and right borders
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        const block = result.content[0];
+        // Block index 2: border-left and border-right shorthand
+        const block = result.content[2];
         
         assert.ok(block.table, 'Should convert to table structure');
         
@@ -290,24 +163,8 @@ function registerBlockIndividualBordersTests(testRunner, converter, blockBorders
     });
     
     testRunner.addTest('Should handle individual shorthand overriding general border', () => {
-        const xslfo = `<?xml version="1.0" encoding="UTF-8"?>
-        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
-          <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in" margin="1in">
-              <fo:region-body margin="0.5in"/>
-            </fo:simple-page-master>
-          </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
-            <fo:flow flow-name="xsl-region-body">
-              <fo:block border="2px solid black" border-bottom="4px dashed red">
-                General border with bottom override
-              </fo:block>
-            </fo:flow>
-          </fo:page-sequence>
-        </fo:root>`;
-        
-        const result = converter.convertToPDFMake(xslfo);
-        const block = result.content[0];
+        // Block index 3: General border with bottom shorthand override
+        const block = result.content[3];
         
         assert.ok(block.table, 'Should convert to table structure');
         

@@ -541,6 +541,7 @@
         let tablePaddingToMarginXML = null;
         let keepPropertiesXML = null;
         let tableHeaderXML = null;
+        let blockIndividualBordersXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -589,6 +590,7 @@
                 tablePaddingToMarginXML = await loadTestFile('data/table_padding_to_margin.xslt');
                 keepPropertiesXML = await loadTestFile('data/keep_properties.xslt');
                 tableHeaderXML = await loadTestFile('data/table_header.xslt');
+                blockIndividualBordersXML = await loadTestFile('data/block_individual_borders.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -631,7 +633,7 @@
                 { registerFn: registerTablePaddingToMarginTests, xml: tablePaddingToMarginXML, name: 'table_padding_to_margin.xslt' },
                 { registerFn: registerKeepPropertiesTests, xml: keepPropertiesXML, name: 'keep_properties.xslt' },
                 { registerFn: registerTableHeaderTests, xml: tableHeaderXML, name: 'table_header.xslt' },
-                { registerFn: registerBlockIndividualBordersTests, xml: emptyPageXML, name: 'empty_page.xslt' }
+                { registerFn: registerBlockIndividualBordersTests, xml: blockIndividualBordersXML, name: 'block_individual_borders.xslt' }
             ];
             
             // Register each test suite and map to its data file

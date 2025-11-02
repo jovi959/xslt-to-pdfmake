@@ -968,6 +968,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load block individual borders test data
+    const blockIndividualBordersXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'block_individual_borders.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -993,7 +999,7 @@ async function main() {
     registerTablePaddingToMarginTests(testRunner, converter, tablePaddingToMarginXML, assert);
     registerKeepPropertiesTests(testRunner, converter, keepPropertiesXML, assert);
     registerTableHeaderTests(testRunner, converter, tableHeaderXML, assert);
-    registerBlockIndividualBordersTests(testRunner, converter, emptyPageXML, assert);
+    registerBlockIndividualBordersTests(testRunner, converter, blockIndividualBordersXML, assert);
 
     // Run all tests
     await testRunner.runTests();
