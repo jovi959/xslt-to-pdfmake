@@ -251,9 +251,10 @@ class XSLToPDFMakeConverter {
             const hasBlockConverter = typeof window !== 'undefined' && window.BlockConverter;
             const hasInlineConverter = typeof window !== 'undefined' && window.InlineConverter;
             const hasTableConverter = typeof window !== 'undefined' && window.TableConverter;
+            const hasListConverter = typeof window !== 'undefined' && window.ListConverter;
 
             // If modules not available in browser, check Node.js
-            let traverse, convertBlock, convertInline, convertTable;
+            let traverse, convertBlock, convertInline, convertTable, convertList;
             
             // Browser environment
             if (hasTraversal && hasBlockConverter) {
@@ -266,6 +267,10 @@ class XSLToPDFMakeConverter {
                 // Table converter is optional
                 if (hasTableConverter) {
                     convertTable = window.TableConverter.convertTable;
+                }
+                // List converter is optional
+                if (hasListConverter) {
+                    convertList = window.ListConverter.convertList;
                 }
             } else if (typeof require !== 'undefined') {
                 // Node.js environment
@@ -291,6 +296,15 @@ class XSLToPDFMakeConverter {
                     } catch (tableErr) {
                         // Table converter not available, that's okay
                         console.log('Table converter not loaded (optional)');
+                    }
+                    
+                    // Try to load list converter (optional)
+                    try {
+                        const ListConverter = require('./list-converter.js');
+                        convertList = ListConverter.convertList;
+                    } catch (listErr) {
+                        // List converter not available, that's okay
+                        console.log('List converter not loaded (optional)');
                     }
                 } catch (e) {
                     console.warn('Conversion modules not available:', e.message);
@@ -345,6 +359,14 @@ class XSLToPDFMakeConverter {
                     // Process table elements (if table converter is available)
                     else if ((child.nodeName === 'fo:table' || child.nodeName === 'table') && convertTable) {
                         const converted = traverse(child, convertTable);
+                        if (converted !== null && converted !== undefined) {
+                            content.push(converted);
+                        }
+                    }
+                    
+                    // Process list elements (if list converter is available)
+                    else if ((child.nodeName === 'fo:list-block' || child.nodeName === 'list-block') && convertList) {
+                        const converted = traverse(child, convertList);
                         if (converted !== null && converted !== undefined) {
                             content.push(converted);
                         }

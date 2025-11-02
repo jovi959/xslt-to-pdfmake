@@ -95,6 +95,9 @@ if (typeof registerStandaloneInlineTests === 'function') {
 if (typeof registerLineHeightTests === 'function') {
     registerLineHeightTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerListConverterTests === 'function') {
+    registerListConverterTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

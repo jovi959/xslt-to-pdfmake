@@ -518,6 +518,16 @@ class XSLToPDFMakeConverter {
                 // Inline converter not available, that's okay (fallback to block converter)
                 console.log('Inline converter not loaded (optional)');
             }
+            
+            // Try to load list converter (optional)
+            let convertList = null;
+            try {
+                const ListConverter = require('../src/list-converter.js');
+                convertList = ListConverter.convertList;
+            } catch (e) {
+                // List converter not available, that's okay
+                console.log('List converter not loaded (optional)');
+            }
 
             if (!traverse || !convertBlock) {
                 console.warn('Block conversion modules not available');
@@ -538,8 +548,8 @@ class XSLToPDFMakeConverter {
                 let currentPos = 0;
                 
                 while (currentPos < flowContent.length) {
-                    // Find next block, table, or inline start
-                    const elementStartRegex = /<(fo:block|block|fo:table|table|fo:inline|inline)[\s>\/]/;
+                    // Find next block, table, inline, or list start
+                    const elementStartRegex = /<(fo:block|block|fo:table|table|fo:inline|inline|fo:list-block|list-block)[\s>\/]/;
                     const startMatch = flowContent.substring(currentPos).match(elementStartRegex);
                     
                     if (!startMatch) break;
@@ -562,6 +572,10 @@ class XSLToPDFMakeConverter {
                             if (tagName === 'fo:table' || tagName === 'table') {
                                 if (convertTable) {
                                     converted = traverse(element, convertTable);
+                                }
+                            } else if (tagName === 'fo:list-block' || tagName === 'list-block') {
+                                if (convertList) {
+                                    converted = traverse(element, convertList);
                                 }
                             } else if ((tagName === 'fo:inline' || tagName === 'inline') && convertInline) {
                                 converted = traverse(element, convertInline);
@@ -895,6 +909,7 @@ async function main() {
     // Load new modules
     const { traverse, flattenContent } = require('../src/recursive-traversal.js');
     const BlockConverter = require('../src/block-converter.js');
+    const ListConverter = require('../src/list-converter.js');
     const InheritancePreprocessor = require('../src/preprocessor.js');
     const BlockInheritanceConfig = require('../src/block-inheritance-config.js');
     
@@ -906,6 +921,7 @@ async function main() {
     
     global.RecursiveTraversal = { traverse, flattenContent };
     global.BlockConverter = BlockConverter;
+    global.ListConverter = ListConverter;
     global.DOMParser = DOMParser;
     
     // Load table inheritance config
@@ -914,6 +930,7 @@ async function main() {
     // Also set on window for test compatibility
     global.window.RecursiveTraversal = { traverse, flattenContent };
     global.window.BlockConverter = BlockConverter;
+    global.window.ListConverter = ListConverter;
     global.window.InheritancePreprocessor = InheritancePreprocessor;
     global.window.BlockInheritanceConfig = BlockInheritanceConfig;
     global.window.TableInheritanceConfig = TableInheritanceConfig;
@@ -947,6 +964,7 @@ async function main() {
     const { registerBlockIndividualBordersTests } = require('./tests/block-individual-borders.test.js');
     const { registerStandaloneInlineTests } = require('./tests/standalone-inline.test.js');
     const { registerLineHeightTests } = require('./tests/line-height.test.js');
+    const { registerListConverterTests } = require('./tests/list-converter.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1000,6 +1018,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load list converter test data
+    const listXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'list.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1028,6 +1052,7 @@ async function main() {
     registerBlockIndividualBordersTests(testRunner, converter, blockIndividualBordersXML, assert);
     registerStandaloneInlineTests(testRunner, converter, standaloneInlineXML, assert);
     registerLineHeightTests(testRunner, converter, lineHeightXML, assert);
+    registerListConverterTests(testRunner, converter, listXML, assert);
 
     // Run all tests
     await testRunner.runTests();
