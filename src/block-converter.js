@@ -6,19 +6,21 @@
  */
 
 /**
- * Get dependencies - load keep properties module
+ * Get dependencies - load keep properties and inline converter modules
  */
 const _blockDeps = (function() {
     const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
-    let KeepProperties;
+    let KeepProperties, InlineConverter;
     
     if (isBrowser) {
         KeepProperties = window.KeepProperties;
+        InlineConverter = window.InlineConverter;
     } else if (typeof require === 'function') {
         KeepProperties = require('./keep-properties.js');
+        InlineConverter = require('./inline-converter.js');
     }
     
-    return { KeepProperties };
+    return { KeepProperties, InlineConverter };
 })();
 
 /**
@@ -102,12 +104,20 @@ function parseFontSize(fontSize) {
 
 /**
  * Converts color attribute to PDFMake color property
+ * Normalizes named colors to lowercase (PDFMake requirement)
  * @param {string} color - CSS color value
  * @returns {string|undefined} Color value, undefined if not specified
  */
 function parseColor(color) {
     if (!color) return undefined;
-    return color;
+    
+    // If it's a hex color (starts with #), return as-is (case doesn't matter for hex)
+    if (color.startsWith('#')) {
+        return color;
+    }
+    
+    // For named colors, PDFMake requires lowercase (e.g., "red" not "Red")
+    return color.toLowerCase();
 }
 
 /**
@@ -489,97 +499,6 @@ if (!WhitespaceUtils) {
 }
 
 /**
- * Converts a <fo:inline> element to PDFMake inline content
- * 
- * @param {Element} node - The fo:inline DOM element
- * @param {Array} children - Already-processed child content from recursive traversal
- * @param {Function} traverse - Reference to traverse function
- * @returns {Object|string} PDFMake inline content object or string
- */
-function convertInline(node, children, traverse) {
-    // If not an inline element, return null
-    if (node.nodeName !== 'fo:inline') {
-        return null;
-    }
-
-    // Apply HTML-like whitespace normalization (all 3 steps in one call)
-    // 1. Normalize whitespace (newlines → spaces, collapse multiple)
-    // 2. Trim edge spaces
-    // 3. Insert spaces between consecutive inline elements
-    children = WhitespaceUtils.normalizeChildren(children);
-
-    // Extract and convert attributes
-    const bold = parseFontWeight(node.getAttribute('font-weight'));
-    const italics = parseFontStyle(node.getAttribute('font-style'));
-    const decoration = parseTextDecoration(node.getAttribute('text-decoration'));
-    const fontSize = parseFontSize(node.getAttribute('font-size'));
-    const color = parseColor(node.getAttribute('color'));
-    const alignment = parseAlignment(node.getAttribute('text-align'));
-    const font = parseFontFamily(node.getAttribute('font-family'));
-    const background = parseBackgroundColor(node.getAttribute('background-color'));
-    const lineHeight = parseLineHeight(node.getAttribute('line-height'));
-
-    // Build the text content
-    let textContent;
-    if (children && children.length > 0) {
-        // Check if we have nested inlines (objects)
-        const hasNestedInlines = children.some(child => typeof child === 'object' && child !== null && !Array.isArray(child));
-        
-        // If only one child and it's a string, use it directly
-        if (children.length === 1 && typeof children[0] === 'string') {
-            textContent = children[0];
-        } else if (hasNestedInlines) {
-            // Has nested inlines - wrap text children with this inline's styling
-            textContent = children.map(child => {
-                if (typeof child === 'string') {
-                    // Text node with nested inline siblings - wrap with parent styling
-                    const styledText = { text: child };
-                    if (bold !== undefined) styledText.bold = bold;
-                    if (italics !== undefined) styledText.italics = italics;
-                    if (decoration !== undefined) styledText.decoration = decoration;
-                    if (fontSize !== undefined) styledText.fontSize = fontSize;
-                    if (color !== undefined) styledText.color = color;
-                    if (alignment !== undefined) styledText.alignment = alignment;
-                    
-                    // If no styling, return string as-is
-                    return Object.keys(styledText).length > 1 ? styledText : child;
-                } else {
-                    // Nested inline - return as-is
-                    return child;
-                }
-            });
-        } else {
-            // No nested inlines - use array of children as-is
-            textContent = children.length === 1 ? children[0] : children;
-        }
-    } else {
-        // No children - empty text
-        textContent = '';
-    }
-    
-    // Build the inline object
-    const result = { text: textContent };
-    
-    // Only add properties that are defined
-    if (bold !== undefined) result.bold = bold;
-    if (italics !== undefined) result.italics = italics;
-    if (decoration !== undefined) result.decoration = decoration;
-    if (fontSize !== undefined) result.fontSize = fontSize;
-    if (color !== undefined) result.color = color;
-    if (alignment !== undefined) result.alignment = alignment;
-    if (font !== undefined) result.font = font;
-    if (background !== undefined) result.background = background;
-    if (lineHeight !== undefined) result.lineHeight = lineHeight;
-
-    // If result only has text property and it's a string, return just the string
-    if (Object.keys(result).length === 1 && typeof result.text === 'string') {
-        return result.text;
-    }
-
-    return result;
-}
-
-/**
  * Converts a <fo:block> element to PDFMake content definition
  * 
  * This function is designed to be used as a converter callback for the traverse function.
@@ -596,8 +515,8 @@ function convertBlock(node, children, traverse) {
     // If not a block element, check if it's an inline element
     if (node.nodeName !== 'fo:block') {
         // Delegate to inline converter if it's an inline element
-        if (node.nodeName === 'fo:inline') {
-            return convertInline(node, children, traverse);
+        if (node.nodeName === 'fo:inline' && _blockDeps.InlineConverter) {
+            return _blockDeps.InlineConverter.convertInline(node, children, traverse);
         }
         return null;
     }
@@ -832,7 +751,6 @@ function convertBlock(node, children, traverse) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
         convertBlock,
-        convertInline,
         parseFontWeight,
         parseFontStyle,
         parseTextDecoration,
@@ -855,7 +773,6 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
     window.BlockConverter = { 
         convertBlock,
-        convertInline,
         parseFontWeight,
         parseFontStyle,
         parseTextDecoration,

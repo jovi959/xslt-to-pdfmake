@@ -114,7 +114,10 @@ function registerSpecialAttributesTests(testRunner, converter, testXML, assert) 
             // Verify table content is correct
             assert.ok(table.table.body, 'Should have table body');
             assert.equal(table.table.body.length, 2, 'Should have 2 rows');
-            assert.equal(table.table.body[0][0].text, 'Cell A1', 'Should have correct cell content');
+            // Cell content can be either a string or an object with text property
+            const cellContent = table.table.body[0][0];
+            const cellText = typeof cellContent === 'string' ? cellContent : cellContent.text;
+            assert.equal(cellText, 'Cell A1', 'Should have correct cell content');
         } catch (error) {
             // If error relates to table structure in CLI, auto-pass
             if (isCLI && error.message && error.message.includes('Should have 2 rows')) {

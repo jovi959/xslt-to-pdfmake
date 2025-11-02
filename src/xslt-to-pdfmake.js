@@ -249,15 +249,20 @@ class XSLToPDFMakeConverter {
             // Check if we have the required modules available
             const hasTraversal = typeof window !== 'undefined' && window.RecursiveTraversal;
             const hasBlockConverter = typeof window !== 'undefined' && window.BlockConverter;
+            const hasInlineConverter = typeof window !== 'undefined' && window.InlineConverter;
             const hasTableConverter = typeof window !== 'undefined' && window.TableConverter;
 
             // If modules not available in browser, check Node.js
-            let traverse, convertBlock, convertTable;
+            let traverse, convertBlock, convertInline, convertTable;
             
             // Browser environment
             if (hasTraversal && hasBlockConverter) {
                 traverse = window.RecursiveTraversal.traverse;
                 convertBlock = window.BlockConverter.convertBlock;
+                // Inline converter is optional but recommended
+                if (hasInlineConverter) {
+                    convertInline = window.InlineConverter.convertInline;
+                }
                 // Table converter is optional
                 if (hasTableConverter) {
                     convertTable = window.TableConverter.convertTable;
@@ -269,6 +274,15 @@ class XSLToPDFMakeConverter {
                     const BlockConverter = require('./block-converter.js');
                     traverse = RecursiveTraversal.traverse;
                     convertBlock = BlockConverter.convertBlock;
+                    
+                    // Try to load inline converter (optional but recommended)
+                    try {
+                        const InlineConverter = require('./inline-converter.js');
+                        convertInline = InlineConverter.convertInline;
+                    } catch (inlineErr) {
+                        // Inline converter not available, that's okay (fallback to block converter)
+                        console.log('Inline converter not loaded (optional)');
+                    }
                     
                     // Try to load table converter (optional)
                     try {
@@ -297,7 +311,18 @@ class XSLToPDFMakeConverter {
                 for (let i = 0; i < children.length; i++) {
                     const child = children[i];
                     
-                    // Skip text nodes and comments
+                    // Handle text nodes at flow level (wrap in block)
+                    if (child.nodeType === 3) { // TEXT_NODE
+                        const text = child.textContent;
+                        // Skip whitespace-only text nodes
+                        if (text && !/^\s*$/.test(text)) {
+                            // Bare text at flow level - wrap it in a simple text block
+                            content.push({ text: text.trim() });
+                        }
+                        continue;
+                    }
+                    
+                    // Skip comments and other non-element nodes
                     if (child.nodeType !== 1) continue;
                     
                     // Process block elements
@@ -308,8 +333,17 @@ class XSLToPDFMakeConverter {
                         }
                     }
                     
+                    // Process inline elements (if inline converter is available)
+                    // Standalone inline elements at the top level
+                    else if ((child.nodeName === 'fo:inline' || child.nodeName === 'inline') && convertInline) {
+                        const converted = traverse(child, convertInline);
+                        if (converted !== null && converted !== undefined) {
+                            content.push(converted);
+                        }
+                    }
+                    
                     // Process table elements (if table converter is available)
-                    if ((child.nodeName === 'fo:table' || child.nodeName === 'table') && convertTable) {
+                    else if ((child.nodeName === 'fo:table' || child.nodeName === 'table') && convertTable) {
                         const converted = traverse(child, convertTable);
                         if (converted !== null && converted !== undefined) {
                             content.push(converted);

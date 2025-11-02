@@ -89,6 +89,9 @@ if (typeof registerTableHeaderTests === 'function') {
 if (typeof registerBlockIndividualBordersTests === 'function') {
     registerBlockIndividualBordersTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerStandaloneInlineTests === 'function') {
+    registerStandaloneInlineTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

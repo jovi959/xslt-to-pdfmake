@@ -508,6 +508,16 @@ class XSLToPDFMakeConverter {
                 // Table converter not available, that's okay
                 console.log('Table converter not loaded (optional)');
             }
+            
+            // Try to load inline converter (optional but recommended)
+            let convertInline = null;
+            try {
+                const InlineConverter = require('../src/inline-converter.js');
+                convertInline = InlineConverter.convertInline;
+            } catch (e) {
+                // Inline converter not available, that's okay (fallback to block converter)
+                console.log('Inline converter not loaded (optional)');
+            }
 
             if (!traverse || !convertBlock) {
                 console.warn('Block conversion modules not available');
@@ -528,8 +538,8 @@ class XSLToPDFMakeConverter {
                 let currentPos = 0;
                 
                 while (currentPos < flowContent.length) {
-                    // Find next block or table start
-                    const elementStartRegex = /<(fo:block|block|fo:table|table)[\s>\/]/;
+                    // Find next block, table, or inline start
+                    const elementStartRegex = /<(fo:block|block|fo:table|table|fo:inline|inline)[\s>\/]/;
                     const startMatch = flowContent.substring(currentPos).match(elementStartRegex);
                     
                     if (!startMatch) break;
@@ -553,6 +563,8 @@ class XSLToPDFMakeConverter {
                                 if (convertTable) {
                                     converted = traverse(element, convertTable);
                                 }
+                            } else if ((tagName === 'fo:inline' || tagName === 'inline') && convertInline) {
+                                converted = traverse(element, convertInline);
                             } else {
                                 converted = traverse(element, convertBlock);
                             }
@@ -933,6 +945,7 @@ async function main() {
     const { registerKeepPropertiesTests } = require('./tests/keep-properties.test.js');
     const { registerTableHeaderTests } = require('./tests/table-header.test.js');
     const { registerBlockIndividualBordersTests } = require('./tests/block-individual-borders.test.js');
+    const { registerStandaloneInlineTests } = require('./tests/standalone-inline.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -974,6 +987,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load standalone inline test data
+    const standaloneInlineXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'standalone_inline.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1000,6 +1019,7 @@ async function main() {
     registerKeepPropertiesTests(testRunner, converter, keepPropertiesXML, assert);
     registerTableHeaderTests(testRunner, converter, tableHeaderXML, assert);
     registerBlockIndividualBordersTests(testRunner, converter, blockIndividualBordersXML, assert);
+    registerStandaloneInlineTests(testRunner, converter, standaloneInlineXML, assert);
 
     // Run all tests
     await testRunner.runTests();
