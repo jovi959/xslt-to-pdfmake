@@ -98,6 +98,9 @@ if (typeof registerLineHeightTests === 'function') {
 if (typeof registerListConverterTests === 'function') {
     registerListConverterTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerListInheritanceTests === 'function') {
+    registerListInheritanceTests(testRunner, converter, emptyPageXML, assert);
+}
 if (typeof registerNestedListInBlockTests === 'function') {
     registerNestedListInBlockTests(testRunner, converter, emptyPageXML, assert);
 }

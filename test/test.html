@@ -512,6 +512,7 @@
     <script src="tests/standalone-inline.test.js"></script>
     <script src="tests/line-height.test.js"></script>
     <script src="tests/list-converter.test.js"></script>
+    <script src="tests/list-inheritance.test.js"></script>
     <script src="tests/nested-list-in-block.test.js"></script>
     <script src="tests/text-array-structure.test.js"></script>
     
@@ -552,6 +553,7 @@
         let standaloneInlineXML = null;
         let lineHeightXML = null;
         let listXML = null;
+        let listInheritanceXML = null;
         let nestedListXML = null;
         let textArrayXML = null;
         let testDataLoaded = false;
@@ -606,6 +608,7 @@
                 standaloneInlineXML = await loadTestFile('data/standalone_inline.xslt');
                 lineHeightXML = await loadTestFile('data/line_height.xslt');
                 listXML = await loadTestFile('data/list.xslt');
+                listInheritanceXML = await loadTestFile('data/list_inheritance.xslt');
                 nestedListXML = await loadTestFile('data/nested_list_in_block.xslt');
                 textArrayXML = await loadTestFile('data/text_array_structure.xslt');
                 testDataLoaded = true;
@@ -654,6 +657,7 @@
                 { registerFn: registerStandaloneInlineTests, xml: standaloneInlineXML, name: 'standalone_inline.xslt' },
                 { registerFn: registerLineHeightTests, xml: lineHeightXML, name: 'line_height.xslt' },
                 { registerFn: registerListConverterTests, xml: listXML, name: 'list.xslt' },
+                { registerFn: registerListInheritanceTests, xml: listInheritanceXML, name: 'list_inheritance.xslt' },
                 { registerFn: registerNestedListInBlockTests, xml: nestedListXML, name: 'nested_list_in_block.xslt' },
                 { registerFn: registerTextArrayStructureTests, xml: textArrayXML, name: 'text_array_structure.xslt' }
             ];

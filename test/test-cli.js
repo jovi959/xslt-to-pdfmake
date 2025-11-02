@@ -967,6 +967,7 @@ async function main() {
     const { registerListConverterTests } = require('./tests/list-converter.test.js');
     const { registerNestedListInBlockTests } = require('./tests/nested-list-in-block.test.js');
     const { registerTextArrayStructureTests } = require('./tests/text-array-structure.test.js');
+    const { registerListInheritanceTests } = require('./tests/list-inheritance.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1026,6 +1027,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load list inheritance test data
+    const listInheritanceXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'list_inheritance.xslt'),
+        'utf-8'
+    );
+    
     // Load nested list in block test data
     const nestedListXML = fs.readFileSync(
         path.join(__dirname, 'data', 'nested_list_in_block.xslt'),
@@ -1067,6 +1074,7 @@ async function main() {
     registerStandaloneInlineTests(testRunner, converter, standaloneInlineXML, assert);
     registerLineHeightTests(testRunner, converter, lineHeightXML, assert);
     registerListConverterTests(testRunner, converter, listXML, assert);
+    registerListInheritanceTests(testRunner, converter, listInheritanceXML, assert);
     registerNestedListInBlockTests(testRunner, converter, nestedListXML, assert);
     registerTextArrayStructureTests(testRunner, converter, textArrayXML, assert);
 

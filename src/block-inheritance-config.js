@@ -6,11 +6,36 @@
  */
 
 /**
- * Default inheritance configuration for XSL-FO blocks
+ * Common inheritable text formatting attributes
+ * These attributes are shared across all inheritance configurations
+ */
+const INHERITABLE_TEXT_ATTRIBUTES = [
+    "color",
+    "font-family",
+    "font-size",
+    "font-weight",
+    "font-style",
+    "background-color",
+    "text-align",
+    "text-decoration",
+    "line-height",
+    "text-indent",
+    "letter-spacing",
+    "word-spacing"
+];
+
+/**
+ * Default inheritance configuration for XSL-FO blocks and lists
  * 
- * Blocks can pass inheritable attributes to:
- * - Child blocks (<fo:block>)
- * - Inline elements (<fo:inline>)
+ * Inheritance chain for lists:
+ * 1. block → block, inline, list-block
+ * 2. list-block → list-item
+ * 3. list-item → list-item-label, list-item-body
+ * 4. list-item-label → block, inline
+ * 5. list-item-body → block, inline
+ * 
+ * This allows attributes from an outer block (e.g., font-size="10pt")
+ * to flow down through the entire list structure to reach inner blocks.
  * 
  * Inheritable attributes include common text formatting properties:
  * - color: Text color
@@ -27,23 +52,35 @@
  * - word-spacing: Space between words
  */
 const BLOCK_INHERITANCE_CONFIG = [
+    // Block can pass attributes to blocks, inlines, and list-blocks
     {
         tag: "block",
+        inheriters: ["block", "inline", "list-block"],
+        inheritable_attributes: INHERITABLE_TEXT_ATTRIBUTES
+    },
+    // List-block can pass attributes to list items
+    {
+        tag: "list-block",
+        inheriters: ["list-item"],
+        inheritable_attributes: INHERITABLE_TEXT_ATTRIBUTES
+    },
+    // List-item can pass attributes to label and body
+    {
+        tag: "list-item",
+        inheriters: ["list-item-label", "list-item-body"],
+        inheritable_attributes: INHERITABLE_TEXT_ATTRIBUTES
+    },
+    // List-item-label can pass attributes to blocks and inlines inside it
+    {
+        tag: "list-item-label",
         inheriters: ["block", "inline"],
-        inheritable_attributes: [
-            "color",
-            "font-family",
-            "font-size",
-            "font-weight",
-            "font-style",
-            "background-color",
-            "text-align",
-            "text-decoration",
-            "line-height",
-            "text-indent",
-            "letter-spacing",
-            "word-spacing"
-        ]
+        inheritable_attributes: INHERITABLE_TEXT_ATTRIBUTES
+    },
+    // List-item-body can pass attributes to blocks and inlines inside it
+    {
+        tag: "list-item-body",
+        inheriters: ["block", "inline"],
+        inheritable_attributes: INHERITABLE_TEXT_ATTRIBUTES
     }
 ];
 
@@ -89,6 +126,7 @@ function getMinimalBlockConfig() {
 // Export for both browser and Node.js
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
+        INHERITABLE_TEXT_ATTRIBUTES,
         BLOCK_INHERITANCE_CONFIG,
         getBlockInheritanceConfig,
         getCustomBlockConfig,
@@ -98,6 +136,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 if (typeof window !== 'undefined') {
     window.BlockInheritanceConfig = {
+        INHERITABLE_TEXT_ATTRIBUTES,
         BLOCK_INHERITANCE_CONFIG,
         getBlockInheritanceConfig,
         getCustomBlockConfig,
