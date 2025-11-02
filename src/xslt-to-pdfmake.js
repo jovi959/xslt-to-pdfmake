@@ -343,7 +343,17 @@ class XSLToPDFMakeConverter {
                     if (child.nodeName === 'fo:block' || child.nodeName === 'block') {
                         const converted = traverse(child, convertBlock);
                         if (converted !== null && converted !== undefined) {
-                            content.push(converted);
+                            // If the block returned a stack (mixed text+list/table content),
+                            // unpack the stack items as separate content items
+                            if (converted.stack && Array.isArray(converted.stack)) {
+                                converted.stack.forEach(item => {
+                                    if (item !== null && item !== undefined) {
+                                        content.push(item);
+                                    }
+                                });
+                            } else {
+                                content.push(converted);
+                            }
                         }
                     }
                     

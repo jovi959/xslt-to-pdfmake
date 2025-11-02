@@ -512,6 +512,8 @@
     <script src="tests/standalone-inline.test.js"></script>
     <script src="tests/line-height.test.js"></script>
     <script src="tests/list-converter.test.js"></script>
+    <script src="tests/nested-list-in-block.test.js"></script>
+    <script src="tests/text-array-structure.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -550,6 +552,8 @@
         let standaloneInlineXML = null;
         let lineHeightXML = null;
         let listXML = null;
+        let nestedListXML = null;
+        let textArrayXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -602,6 +606,8 @@
                 standaloneInlineXML = await loadTestFile('data/standalone_inline.xslt');
                 lineHeightXML = await loadTestFile('data/line_height.xslt');
                 listXML = await loadTestFile('data/list.xslt');
+                nestedListXML = await loadTestFile('data/nested_list_in_block.xslt');
+                textArrayXML = await loadTestFile('data/text_array_structure.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -647,7 +653,9 @@
                 { registerFn: registerBlockIndividualBordersTests, xml: blockIndividualBordersXML, name: 'block_individual_borders.xslt' },
                 { registerFn: registerStandaloneInlineTests, xml: standaloneInlineXML, name: 'standalone_inline.xslt' },
                 { registerFn: registerLineHeightTests, xml: lineHeightXML, name: 'line_height.xslt' },
-                { registerFn: registerListConverterTests, xml: listXML, name: 'list.xslt' }
+                { registerFn: registerListConverterTests, xml: listXML, name: 'list.xslt' },
+                { registerFn: registerNestedListInBlockTests, xml: nestedListXML, name: 'nested_list_in_block.xslt' },
+                { registerFn: registerTextArrayStructureTests, xml: textArrayXML, name: 'text_array_structure.xslt' }
             ];
             
             // Register each test suite and map to its data file

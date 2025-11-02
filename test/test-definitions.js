@@ -98,6 +98,12 @@ if (typeof registerLineHeightTests === 'function') {
 if (typeof registerListConverterTests === 'function') {
     registerListConverterTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerNestedListInBlockTests === 'function') {
+    registerNestedListInBlockTests(testRunner, converter, emptyPageXML, assert);
+}
+if (typeof registerTextArrayStructureTests === 'function') {
+    registerTextArrayStructureTests(testRunner, converter, emptyPageXML, assert);
+}
 }
 
 // Export for use in both browser and Node.js

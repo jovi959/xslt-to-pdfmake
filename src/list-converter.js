@@ -100,7 +100,7 @@ function isNumberedList(listItem) {
  * Extract the content from fo:list-item-body
  * @param {Element} listItem - The fo:list-item element
  * @param {Function} traverse - Recursive traversal function
- * @returns {*} Converted content (string or object with styling)
+ * @returns {*} Converted content (string, object with styling, or stack)
  */
 function extractListItemContent(listItem, traverse) {
     // Find the fo:list-item-body
@@ -113,37 +113,45 @@ function extractListItemContent(listItem, traverse) {
         return null; // No body, skip this item
     }
     
-    // Find the fo:block inside the body
+    // Find ALL fo:block elements inside the body (not just the first one)
     const bodyChildren = body.children || body.childNodes || [];
-    const block = Array.from(bodyChildren).find(child =>
+    const blocks = Array.from(bodyChildren).filter(child =>
         child.nodeType === 1 && (child.nodeName === 'fo:block' || child.nodeName === 'block')
     );
     
-    if (!block) {
+    if (blocks.length === 0) {
         // No block, just get text content
         const text = body.textContent.trim();
         return text || null;
     }
     
     // Use block converter to handle the block content
-    // This will handle styling, nested blocks, etc.
+    // This will handle styling, nested blocks, lists, etc.
     const BlockConverter = typeof window !== 'undefined' 
         ? window.BlockConverter 
         : require('./block-converter.js');
     
     if (BlockConverter && BlockConverter.convertBlock) {
-        const converted = traverse(block, BlockConverter.convertBlock);
+        // Convert all blocks
+        const convertedBlocks = blocks.map(block => 
+            traverse(block, BlockConverter.convertBlock)
+        ).filter(b => b !== null && b !== undefined);
         
-        // If the result is a simple text object, extract just the text
-        if (converted && typeof converted === 'object' && converted.text && !converted.stack) {
-            return converted;
+        if (convertedBlocks.length === 0) {
+            return null;
         }
         
-        return converted;
+        // If only one block, return it directly
+        if (convertedBlocks.length === 1) {
+            return convertedBlocks[0];
+        }
+        
+        // Multiple blocks - wrap in a stack
+        return { stack: convertedBlocks };
     }
     
-    // Fallback: just return text
-    return block.textContent.trim() || null;
+    // Fallback: just return text from first block
+    return blocks[0].textContent.trim() || null;
 }
 
 // Export for both browser and Node.js

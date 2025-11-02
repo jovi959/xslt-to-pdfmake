@@ -537,11 +537,29 @@ if (!WhitespaceUtils) {
  * @returns {Object|string} PDFMake content object or string
  */
 function convertBlock(node, children, traverse) {
-    // If not a block element, check if it's an inline element
+    // If not a block element, check if it's an inline element, list, or table
     if (node.nodeName !== 'fo:block') {
         // Delegate to inline converter if it's an inline element
         if (node.nodeName === 'fo:inline' && _blockDeps.InlineConverter) {
             return _blockDeps.InlineConverter.convertInline(node, children, traverse);
+        }
+        // Delegate to list converter if it's a list element
+        if ((node.nodeName === 'fo:list-block' || node.nodeName === 'list-block')) {
+            const ListConverter = typeof window !== 'undefined' 
+                ? window.ListConverter 
+                : require('./list-converter.js');
+            if (ListConverter && ListConverter.convertList) {
+                return ListConverter.convertList(node, children, traverse);
+            }
+        }
+        // Delegate to table converter if it's a table element
+        if ((node.nodeName === 'fo:table' || node.nodeName === 'table')) {
+            const TableConverter = typeof window !== 'undefined' 
+                ? window.TableConverter 
+                : require('./table-converter.js');
+            if (TableConverter && TableConverter.convertTable) {
+                return TableConverter.convertTable(node, children, traverse);
+            }
         }
         return null;
     }
@@ -572,12 +590,77 @@ function convertBlock(node, children, traverse) {
     const lineHeight = parseLineHeight(node.getAttribute('line-height'), fontSize || 10);
     const pageBreak = parsePageBreak(node.getAttribute('page-break-before'));
 
-    // Build the text content
+    // Check if children contain lists, tables, or stacks (structured elements)
+    const hasStructuredElements = children && children.some(child => 
+        typeof child === 'object' && child !== null && !Array.isArray(child) && 
+        (child.ul || child.ol || child.table || child.stack)
+    );
+    
+    // If block contains lists/tables/stacks mixed with text, we need to return a stack
+    if (hasStructuredElements) {
+        // Separate text/inline content from structured elements (lists/tables)
+        const stackItems = [];
+        let textAccumulator = [];
+        
+        children.forEach(child => {
+            if (typeof child === 'object' && child !== null && !Array.isArray(child) && 
+                (child.ul || child.ol || child.table || child.stack)) {
+                // This is a list, table, or stack - flush accumulated text first
+                if (textAccumulator.length > 0) {
+                    const textItem = { text: textAccumulator.length === 1 ? textAccumulator[0] : textAccumulator };
+                    if (bold !== undefined) textItem.bold = bold;
+                    if (italics !== undefined) textItem.italics = italics;
+                    if (decoration !== undefined) textItem.decoration = decoration;
+                    if (fontSize !== undefined) textItem.fontSize = fontSize;
+                    if (color !== undefined) textItem.color = color;
+                    if (alignment !== undefined) textItem.alignment = alignment;
+                    if (font !== undefined) textItem.font = font;
+                    if (background !== undefined) textItem.background = background;
+                    if (lineHeight !== undefined) textItem.lineHeight = lineHeight;
+                    stackItems.push(textItem);
+                    textAccumulator = [];
+                }
+                // Add the list/table as a separate stack item
+                stackItems.push(child);
+            } else {
+                // Text or inline content - accumulate it
+                textAccumulator.push(child);
+            }
+        });
+        
+        // Flush any remaining text
+        if (textAccumulator.length > 0) {
+            const textItem = { text: textAccumulator.length === 1 ? textAccumulator[0] : textAccumulator };
+            if (bold !== undefined) textItem.bold = bold;
+            if (italics !== undefined) textItem.italics = italics;
+            if (decoration !== undefined) textItem.decoration = decoration;
+            if (fontSize !== undefined) textItem.fontSize = fontSize;
+            if (color !== undefined) textItem.color = color;
+            if (alignment !== undefined) textItem.alignment = alignment;
+            if (font !== undefined) textItem.font = font;
+            if (background !== undefined) textItem.background = background;
+            if (lineHeight !== undefined) textItem.lineHeight = lineHeight;
+            stackItems.push(textItem);
+        }
+        
+        // If we only have one item, return it directly; otherwise return a stack
+        if (stackItems.length === 1) {
+            return stackItems[0];
+        } else if (stackItems.length > 1) {
+            return { stack: stackItems };
+        }
+        // If no items, fall through to default behavior
+    }
+    
+    // Build the text content (non-structured elements)
     let textContent;
     
     if (children && children.length > 0) {
-        // Check if we have nested blocks (objects)
-        const hasNestedBlocks = children.some(child => typeof child === 'object' && child !== null && !Array.isArray(child));
+        // Check if we have nested blocks (objects that aren't lists/tables/stacks)
+        const hasNestedBlocks = children.some(child => 
+            typeof child === 'object' && child !== null && !Array.isArray(child) &&
+            !child.ul && !child.ol && !child.table && !child.stack
+        );
         
         // If only one child and it's a string, use it directly
         if (children.length === 1 && typeof children[0] === 'string') {
@@ -740,6 +823,23 @@ function convertBlock(node, children, traverse) {
         }
         
         return tableStructure;
+    }
+    
+    // CRITICAL: Check if textContent is a stack or list
+    // PDFMake Rule: You CANNOT put stack or list inside text array
+    // If textContent is a single stack/list object, return it directly
+    if (textContent && typeof textContent === 'object' && !Array.isArray(textContent)) {
+        if (textContent.stack || textContent.ul || textContent.ol) {
+            // This is a stack or list - return it directly (don't wrap in text)
+            // Apply block-level properties to the stack/list if needed
+            if (margin !== undefined) textContent.margin = margin;
+            if (pageBreak !== undefined) textContent.pageBreak = pageBreak;
+            if (_blockDeps.KeepProperties) {
+                _blockDeps.KeepProperties.applyKeepTogether(node, textContent);
+                _blockDeps.KeepProperties.markKeepWithPrevious(node, textContent);
+            }
+            return textContent;
+        }
     }
     
     // No border - return normal text block

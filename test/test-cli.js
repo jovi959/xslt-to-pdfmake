@@ -965,6 +965,8 @@ async function main() {
     const { registerStandaloneInlineTests } = require('./tests/standalone-inline.test.js');
     const { registerLineHeightTests } = require('./tests/line-height.test.js');
     const { registerListConverterTests } = require('./tests/list-converter.test.js');
+    const { registerNestedListInBlockTests } = require('./tests/nested-list-in-block.test.js');
+    const { registerTextArrayStructureTests } = require('./tests/text-array-structure.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1024,6 +1026,18 @@ async function main() {
         'utf-8'
     );
     
+    // Load nested list in block test data
+    const nestedListXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'nested_list_in_block.xslt'),
+        'utf-8'
+    );
+    
+    // Load text array structure test data
+    const textArrayXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'text_array_structure.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1053,6 +1067,8 @@ async function main() {
     registerStandaloneInlineTests(testRunner, converter, standaloneInlineXML, assert);
     registerLineHeightTests(testRunner, converter, lineHeightXML, assert);
     registerListConverterTests(testRunner, converter, listXML, assert);
+    registerNestedListInBlockTests(testRunner, converter, nestedListXML, assert);
+    registerTextArrayStructureTests(testRunner, converter, textArrayXML, assert);
 
     // Run all tests
     await testRunner.runTests();
