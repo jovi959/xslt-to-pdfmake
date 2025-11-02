@@ -284,11 +284,12 @@ Example:
         function init() {
             // Register custom fonts with PDFMake
             if (typeof customVfsFonts !== 'undefined' && typeof customFonts !== 'undefined') {
-                // Merge custom fonts into PDFMake's VFS
+                // Merge custom fonts into PDFMake's VFS (only for fonts that need embedding)
                 pdfMake.vfs = Object.assign({}, pdfMake.vfs, customVfsFonts);
                 
-                // Register custom fonts
-                pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, customFonts);
+                // Register all fonts (standard PDF fonts + custom fonts)
+                // Standard fonts (Helvetica, Times, Courier) don't need VFS entries
+                pdfMake.fonts = customFonts;
                 
                 console.log('✅ Custom fonts registered:', Object.keys(customFonts));
             }

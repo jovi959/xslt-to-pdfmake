@@ -444,7 +444,10 @@ class XSLToPDFMakeConverter {
         const pdfMakeDefinition = {
             pageSize: pageSize,
             pageMargins: [0, 0, 0, 0], // Always [0,0,0,0] when using header/footer
-            content: content
+            content: content,
+            defaultStyle: {
+                font: 'NimbusSan'  // Open-source Helvetica clone
+            }
         };
 
         // Generate header/footer based on page sequences

@@ -7,7 +7,12 @@ This project supports custom fonts in addition to the standard PDFMake fonts (Ro
 ## 🎨 Available Fonts
 
 ### Standard Fonts (PDFMake)
-- **Roboto** (default)
+- **NimbusSan** (default)
+  - Open-source Helvetica clone
+  - normal, bold, italics, bolditalics
+  - Usage: `font-family="NimbusSan"`
+
+- **Roboto**
   - normal, bold, italics, bolditalics
 
 ### Custom Fonts

@@ -13,6 +13,14 @@ const path = require('path');
 // Configuration
 const FONTS = [
     {
+        name: 'NimbusSan',  // Display name (for XSL-FO)
+        fontName: 'NimbusSan',  // PDFMake font name
+        normal: path.join(__dirname, '../assets/NimbusSanL-Reg.otf'),
+        bold: path.join(__dirname, '../assets/NimbusSanL-Bol.otf'),
+        italics: path.join(__dirname, '../assets/NimbusSanL-RegIta.otf'),
+        bolditalics: path.join(__dirname, '../assets/NimbusSanL-BolIta.otf')
+    },
+    {
         name: 'Wingdings',  // Display name (for XSL-FO)
         fontName: 'wingdings',  // PDFMake font name (lowercase)
         normal: path.join(__dirname, '../assets/wingding.ttf')
@@ -93,25 +101,7 @@ const customFonts = {
         italics: 'Roboto-Italic.ttf',
         bolditalics: 'Roboto-MediumItalic.ttf'
     },
-    Courier: {
-        normal: 'Courier',
-        bold: 'Courier-Bold',
-        italics: 'Courier-Oblique',
-        bolditalics: 'Courier-BoldOblique'
-    },
-    Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-    },
-    Times: {
-        normal: 'Times-Roman',
-        bold: 'Times-Bold',
-        italics: 'Times-Italic',
-        bolditalics: 'Times-BoldItalic'
-    },
-    // Custom fonts
+    // Embedded custom fonts (from assets/)
     ...${customFontsStr}
 };
 
