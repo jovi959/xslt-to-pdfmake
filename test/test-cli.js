@@ -961,6 +961,7 @@ async function main() {
     const { registerTablePaddingToMarginTests } = require('./tests/table-padding-to-margin.test.js');
     const { registerKeepPropertiesTests } = require('./tests/keep-properties.test.js');
     const { registerTableHeaderTests } = require('./tests/table-header.test.js');
+    const { registerTableMarginTests } = require('./tests/table-margin.test.js');
     const { registerBlockIndividualBordersTests } = require('./tests/block-individual-borders.test.js');
     const { registerStandaloneInlineTests } = require('./tests/standalone-inline.test.js');
     const { registerLineHeightTests } = require('./tests/line-height.test.js');
@@ -1059,6 +1060,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load table margin test data
+    const tableMarginXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'table_margin.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1093,6 +1100,7 @@ async function main() {
     registerTextArrayStructureTests(testRunner, converter, textArrayXML, assert);
     registerNestedTableTests(testRunner, converter, nestedTableXML, assert);
     registerFontWeightOverrideTests(testRunner, converter, fontWeightXML, assert);
+    registerTableMarginTests(testRunner, converter, tableMarginXML, assert);
 
     // Run all tests
     await testRunner.runTests();

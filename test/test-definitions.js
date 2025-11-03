@@ -86,6 +86,9 @@ if (typeof registerKeepPropertiesTests === 'function') {
 if (typeof registerTableHeaderTests === 'function') {
     registerTableHeaderTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerTableMarginTests === 'function') {
+    registerTableMarginTests(testRunner, converter, emptyPageXML, assert);
+}
 if (typeof registerBlockIndividualBordersTests === 'function') {
     registerBlockIndividualBordersTests(testRunner, converter, emptyPageXML, assert);
 }

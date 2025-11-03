@@ -619,14 +619,29 @@ function convertTable(node, children, traverse) {
         tableStructure.table.headerRows = headerRows.length;
     }
     
+    // Handle margin on table element
+    // In XSL-FO, margin is spacing outside the table
+    // PDFMake expects margin as [left, top, right, bottom]
+    // XSL-FO margin format is "top right bottom left" (CSS format)
+    const tableMargin = node.getAttribute('margin');
+    if (tableMargin && _deps.BlockConverter && _deps.BlockConverter.parseMargin) {
+        const margin = _deps.BlockConverter.parseMargin(tableMargin);
+        if (margin) {
+            tableStructure.margin = margin;
+        }
+    }
+    
     // Handle padding on table element - convert to margin
     // In XSL-FO, padding on the table container should be interpreted as 
     // spacing around the table (margin in PDFMake), not as cell padding
-    const tablePadding = node.getAttribute('padding');
-    if (tablePadding && _deps.BlockConverter && _deps.BlockConverter.parsePadding) {
-        const margin = _deps.BlockConverter.parsePadding(tablePadding);
-        if (margin) {
-            tableStructure.margin = margin;
+    // Only apply if margin is not already set (margin takes precedence)
+    if (!tableStructure.margin) {
+        const tablePadding = node.getAttribute('padding');
+        if (tablePadding && _deps.BlockConverter && _deps.BlockConverter.parsePadding) {
+            const margin = _deps.BlockConverter.parsePadding(tablePadding);
+            if (margin) {
+                tableStructure.margin = margin;
+            }
         }
     }
     
