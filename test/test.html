@@ -515,6 +515,7 @@
     <script src="tests/list-inheritance.test.js"></script>
     <script src="tests/nested-list-in-block.test.js"></script>
     <script src="tests/text-array-structure.test.js"></script>
+    <script src="tests/nested-table.test.js"></script>
     <script src="tests/font-weight-override.test.js"></script>
     
     <!-- Load test loader -->
@@ -557,6 +558,7 @@
         let listInheritanceXML = null;
         let nestedListXML = null;
         let textArrayXML = null;
+        let nestedTableXML = null;
         let fontWeightXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
@@ -613,6 +615,7 @@
                 listInheritanceXML = await loadTestFile('data/list_inheritance.xslt');
                 nestedListXML = await loadTestFile('data/nested_list_in_block.xslt');
                 textArrayXML = await loadTestFile('data/text_array_structure.xslt');
+                nestedTableXML = await loadTestFile('data/nested_table.xslt');
                 fontWeightXML = await loadTestFile('data/font_weight_override.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
@@ -663,6 +666,7 @@
                 { registerFn: registerListInheritanceTests, xml: listInheritanceXML, name: 'list_inheritance.xslt' },
                 { registerFn: registerNestedListInBlockTests, xml: nestedListXML, name: 'nested_list_in_block.xslt' },
                 { registerFn: registerTextArrayStructureTests, xml: textArrayXML, name: 'text_array_structure.xslt' },
+                { registerFn: registerNestedTableTests, xml: nestedTableXML, name: 'nested_table.xslt' },
                 { registerFn: registerFontWeightOverrideTests, xml: fontWeightXML, name: 'font_weight_override.xslt' }
             ];
             

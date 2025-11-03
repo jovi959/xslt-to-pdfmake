@@ -969,6 +969,7 @@ async function main() {
     const { registerTextArrayStructureTests } = require('./tests/text-array-structure.test.js');
     const { registerListInheritanceTests } = require('./tests/list-inheritance.test.js');
     const { registerFontWeightOverrideTests } = require('./tests/font-weight-override.test.js');
+    const { registerNestedTableTests } = require('./tests/nested-table.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1046,6 +1047,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load nested table test data
+    const nestedTableXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'nested_table.xslt'),
+        'utf-8'
+    );
+    
     // Load font weight override test data
     const fontWeightXML = fs.readFileSync(
         path.join(__dirname, 'data', 'font_weight_override.xslt'),
@@ -1084,6 +1091,7 @@ async function main() {
     registerListInheritanceTests(testRunner, converter, listInheritanceXML, assert);
     registerNestedListInBlockTests(testRunner, converter, nestedListXML, assert);
     registerTextArrayStructureTests(testRunner, converter, textArrayXML, assert);
+    registerNestedTableTests(testRunner, converter, nestedTableXML, assert);
     registerFontWeightOverrideTests(testRunner, converter, fontWeightXML, assert);
 
     // Run all tests

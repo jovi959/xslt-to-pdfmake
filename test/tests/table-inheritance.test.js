@@ -353,16 +353,18 @@ function registerTableInheritanceTests(testRunner, converter, testXML, assert) {
         assert.ok(table, 'Should find table');
         
         const cellContent = table.table.body[0][0];
-        assert.ok(Array.isArray(cellContent), 'Cell should have multiple blocks');
-        assert.equal(cellContent.length, 2, 'Should have 2 blocks');
+        // Cell with multiple children should use stack property
+        assert.ok(cellContent.stack, 'Cell should have stack property with multiple blocks');
+        assert.ok(Array.isArray(cellContent.stack), 'Stack should be an array');
+        assert.equal(cellContent.stack.length, 2, 'Should have 2 blocks');
         
         // Both blocks should inherit text-align="right"
-        assert.equal(cellContent[0].alignment, 'right', 'First block should be right-aligned');
-        assert.equal(cellContent[1].alignment, 'right', 'Second block should be right-aligned');
+        assert.equal(cellContent.stack[0].alignment, 'right', 'First block should be right-aligned');
+        assert.equal(cellContent.stack[1].alignment, 'right', 'Second block should be right-aligned');
         
         // Blocks should keep their own styling
-        assert.equal(cellContent[0].fontSize, 12, 'First block fontSize');
-        assert.equal(cellContent[1].fontSize, 10, 'Second block fontSize');
+        assert.equal(cellContent.stack[0].fontSize, 12, 'First block fontSize');
+        assert.equal(cellContent.stack[1].fontSize, 10, 'Second block fontSize');
     });
 }
 

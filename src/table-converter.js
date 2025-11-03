@@ -234,10 +234,12 @@ function convertTableCell(node, children, traverse, tableMeta) {
         tableMeta.cellPadding.push(styling.paddingInfo);
     }
     
-    // Build cell object if we have special attributes
+    // Build cell object if we have special attributes OR multiple children (array)
+    // Multiple children always need to be wrapped in a stack
     const hasSpecialAttrs = colSpan > 1 || border || Object.keys(styling.cellProps).length > 0;
+    const needsCellObject = hasSpecialAttrs || Array.isArray(cellContent);
     
-    if (hasSpecialAttrs) {
+    if (needsCellObject) {
         // Build cell object
         const cellObject = {};
         
@@ -247,7 +249,7 @@ function convertTableCell(node, children, traverse, tableMeta) {
         if (typeof cellContent === 'string') {
             cellObject.text = cellContent;
         } else if (Array.isArray(cellContent)) {
-            // Multiple blocks - use PDFMake's stack property
+            // Multiple blocks/tables - use PDFMake's stack property
             // This preserves the array structure instead of spreading indices as numeric keys
             cellObject.stack = cellContent;
         } else if (typeof cellContent === 'object' && cellContent !== null) {
@@ -271,7 +273,7 @@ function convertTableCell(node, children, traverse, tableMeta) {
         return cellObject;
     }
 
-    // No special attributes - return content as-is
+    // No special attributes and single child - return content as-is
     return cellContent;
 }
 
@@ -302,8 +304,19 @@ function convertTableRow(node, traverse, tableMeta) {
                     for (let j = 0; j < child.childNodes.length; j++) {
                         const cellChild = child.childNodes[j];
                         
+                        // Handle nested tables
+                        if (cellChild.nodeType === 1 && cellChild.nodeName === 'fo:table') {
+                            // Mark that this table contains nested tables
+                            if (tableMeta) {
+                                tableMeta.hasNestedTables = true;
+                            }
+                            const processed = traverse(cellChild, convertTable);
+                            if (processed !== null && processed !== undefined) {
+                                cellChildren.push(processed);
+                            }
+                        }
                         // Use block converter for blocks inside cells
-                        if (cellChild.nodeType === 1 && cellChild.nodeName === 'fo:block') {
+                        else if (cellChild.nodeType === 1 && cellChild.nodeName === 'fo:block') {
                             const processed = traverse(cellChild, _deps.BlockConverter.convertBlock);
                             if (processed !== null && processed !== undefined) {
                                 cellChildren.push(processed);
@@ -482,8 +495,18 @@ function buildTableLayout(tableMeta) {
         layout.defaultBorder = false;
     }
     
+    // If nested tables are detected, set padding and line widths to zero for parent table
+    if (tableMeta.hasNestedTables) {
+        layout.paddingLeft = function(i, node) { return 0; };
+        layout.paddingRight = function(i, node) { return 0; };
+        layout.paddingTop = function(i, node) { return 0; };
+        layout.paddingBottom = function(i, node) { return 0; };
+        layout.hLineWidth = function(i, node) { return 0; };
+        layout.vLineWidth = function(i, node) { return 0; };
+    }
     // Only use layout padding functions if ALL cells have padding and it's all the same
-    if (tableMeta.hasCellPadding && 
+    // AND no nested tables are present
+    else if (tableMeta.hasCellPadding && 
         tableMeta.cellPadding && 
         tableMeta.cellPadding.length > 0 &&
         tableMeta.cellPadding.length === tableMeta.totalCells) {
@@ -524,6 +547,7 @@ function convertTable(node, children, traverse) {
     const tableMeta = {
         hasCellBorders: false,
         hasCellPadding: false,
+        hasNestedTables: false,  // Track if table contains nested tables
         cellBorders: [],
         cellPadding: [],
         totalCells: 0  // Track total cells to ensure all have same styling

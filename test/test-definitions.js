@@ -104,6 +104,9 @@ if (typeof registerListConverterTests === 'function') {
 if (typeof registerListInheritanceTests === 'function') {
     registerListInheritanceTests(testRunner, converter, emptyPageXML, assert);
 }
+if (typeof registerNestedTableTests === 'function') {
+    registerNestedTableTests(testRunner, converter, emptyPageXML, assert);
+}
 if (typeof registerNestedListInBlockTests === 'function') {
     registerNestedListInBlockTests(testRunner, converter, emptyPageXML, assert);
 }

@@ -211,19 +211,21 @@ function registerTableIntegrationTests(testRunner, converter, testXML, assert) {
         assert.ok(table, 'Should find table');
         
         const cellContent = table.table.body[0][0];
-        assert.ok(Array.isArray(cellContent), 'Cell with multiple blocks should be an array');
-        assert.equal(cellContent.length, 2, 'Should have exactly 2 blocks (no space between)');
+        // Cell with multiple children should use stack property
+        assert.ok(cellContent.stack, 'Cell with multiple blocks should have stack property');
+        assert.ok(Array.isArray(cellContent.stack), 'Stack should be an array');
+        assert.equal(cellContent.stack.length, 2, 'Should have exactly 2 blocks (no space between)');
         
-        assert.equal(cellContent[0].text, 'INSPECTION REPORT', 'First block text');
-        assert.equal(cellContent[0].bold, true, 'First block should be bold');
-        assert.equal(cellContent[0].fontSize, 12, 'First block fontSize');
+        assert.equal(cellContent.stack[0].text, 'INSPECTION REPORT', 'First block text');
+        assert.equal(cellContent.stack[0].bold, true, 'First block should be bold');
+        assert.equal(cellContent.stack[0].fontSize, 12, 'First block fontSize');
         
-        assert.equal(cellContent[1].text, 'Prevention Services Division', 'Second block text');
-        assert.equal(cellContent[1].bold, true, 'Second block should be bold');
-        assert.equal(cellContent[1].fontSize, 10, 'Second block fontSize');
+        assert.equal(cellContent.stack[1].text, 'Prevention Services Division', 'Second block text');
+        assert.equal(cellContent.stack[1].bold, true, 'Second block should be bold');
+        assert.equal(cellContent.stack[1].fontSize, 10, 'Second block fontSize');
         
-        assert.ok(typeof cellContent[0] === 'object', 'First item should be object');
-        assert.ok(typeof cellContent[1] === 'object', 'Second item should be object');
+        assert.ok(typeof cellContent.stack[0] === 'object', 'First item should be object');
+        assert.ok(typeof cellContent.stack[1] === 'object', 'Second item should be object');
     });
 
     testRunner.addTest('Table Integration: Should handle document with only table (no blocks)', () => {
