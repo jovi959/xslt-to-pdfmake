@@ -525,6 +525,155 @@ function registerTableColspanUnitTests(testRunner, converter, tableColspanXML, a
         assert.ok(row[0].border, 'Cell should have border');
         assert.deepEqual(row[0].border, [true, true, true, true], 'Border should be on all sides');
     });
+    
+    // ==================== Cell Padding Tests ====================
+    
+    testRunner.addTest('Table: Should convert cell padding to margin', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="100%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell padding="0px 0px 0px 20px">
+        <fo:block>Cell with left padding</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        assert.ok(result.table, 'Should have table property');
+        assert.equal(result.table.body.length, 1, 'Should have 1 row');
+        const cell = result.table.body[0][0];
+        
+        // Cell should have margin property from padding
+        assert.ok(cell.margin, 'Cell should have margin property');
+        // padding="0px 0px 0px 20px" (top right bottom left)
+        // should become margin [20, 0, 0, 0] (left, top, right, bottom)
+        assert.deepEqual(cell.margin, [20, 0, 0, 0], 'Should convert cell padding to margin [left, top, right, bottom]');
+        assert.equal(cell.text, 'Cell with left padding', 'Cell should have correct text');
+    });
+    
+    testRunner.addTest('Table: Should convert cell padding with single value', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="100%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell padding="10px">
+        <fo:block>Cell with padding</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        const cell = result.table.body[0][0];
+        assert.ok(cell.margin, 'Cell should have margin property');
+        // padding="10px" (all sides same)
+        // should become margin [10, 10, 10, 10] (left, top, right, bottom)
+        assert.deepEqual(cell.margin, [10, 10, 10, 10], 'Should convert single-value padding to margin on all sides');
+    });
+    
+    testRunner.addTest('Table: Should convert cell padding with nested table', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="100%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell padding="10px">
+        <fo:table>
+          <fo:table-column column-width="100%"/>
+          <fo:table-body>
+            <fo:table-row>
+              <fo:table-cell>
+                <fo:block>Nested Cell Content</fo:block>
+              </fo:table-cell>
+            </fo:table-row>
+          </fo:table-body>
+        </fo:table>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        // Parent table should have zero padding/lines layout (nested table detected)
+        assert.ok(result.layout, 'Parent table should have layout');
+        assert.ok(typeof result.layout.paddingLeft === 'function', 'Parent table should have paddingLeft function');
+        assert.ok(typeof result.layout.hLineWidth === 'function', 'Parent table should have hLineWidth function');
+        assert.equal(result.layout.paddingLeft(0, {}), 0, 'Parent table paddingLeft should be 0');
+        assert.equal(result.layout.hLineWidth(0, {}), 0, 'Parent table hLineWidth should be 0');
+        
+        // Parent cell should have margin from padding
+        const parentCell = result.table.body[0][0];
+        assert.ok(parentCell.margin, 'Parent cell should have margin from padding');
+        assert.deepEqual(parentCell.margin, [10, 10, 10, 10], 'Parent cell should have margin [10, 10, 10, 10]');
+        
+        // Parent cell should contain nested table
+        assert.ok(parentCell.table, 'Parent cell should contain nested table');
+        assert.equal(parentCell.table.body[0][0], 'Nested Cell Content', 'Nested cell should have correct content');
+    });
+    
+    testRunner.addTest('Table: Should handle cell padding with zero values (0px 0px 0px 20px)', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="50%"/>
+  <fo:table-column column-width="50%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell padding="0px 0px 0px 20px">
+        <fo:table>
+          <fo:table-column column-width="100%"/>
+          <fo:table-body>
+            <fo:table-row>
+              <fo:table-cell>
+                <fo:block>Cell with left padding</fo:block>
+              </fo:table-cell>
+            </fo:table-row>
+          </fo:table-body>
+        </fo:table>
+      </fo:table-cell>
+      <fo:table-cell>
+        <fo:block>Regular cell</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        // Cell with padding should have margin
+        const paddedCell = result.table.body[0][0];
+        assert.ok(paddedCell.margin, 'Cell with padding should have margin');
+        assert.deepEqual(paddedCell.margin, [20, 0, 0, 0], 'Cell should have margin [20, 0, 0, 0] from padding="0px 0px 0px 20px"');
+        assert.ok(paddedCell.table, 'Cell should contain nested table');
+    });
+    
+    testRunner.addTest('Table: Should handle cell padding with four values', () => {
+        const xml = `<fo:table xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:table-column column-width="100%"/>
+  <fo:table-body>
+    <fo:table-row>
+      <fo:table-cell padding="5px 10px 15px 20px">
+        <fo:block>Cell with all padding sides</fo:block>
+      </fo:table-cell>
+    </fo:table-row>
+  </fo:table-body>
+</fo:table>`;
+        
+        const element = parseXML(xml);
+        const result = RecursiveTraversal.traverse(element, TableConverter.convertTable);
+        
+        const cell = result.table.body[0][0];
+        assert.ok(cell.margin, 'Cell should have margin property');
+        // padding="5px 10px 15px 20px" (top right bottom left)
+        // should become margin [20, 5, 10, 15] (left, top, right, bottom)
+        assert.deepEqual(cell.margin, [20, 5, 10, 15], 'Should convert four-value padding to margin correctly');
+    });
 }
 
 // Export for both browser and Node.js

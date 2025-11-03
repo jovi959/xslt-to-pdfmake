@@ -234,10 +234,21 @@ function convertTableCell(node, children, traverse, tableMeta) {
         tableMeta.cellPadding.push(styling.paddingInfo);
     }
     
-    // Build cell object if we have special attributes OR multiple children (array)
+    // Convert cell padding to margin (XSL-FO padding is already in PDFMake margin format [left, top, right, bottom])
+    let cellMargin = null;
+    if (styling.paddingInfo && Array.isArray(styling.paddingInfo) && styling.paddingInfo.length === 4) {
+        // parsePadding already converts XSL-FO "top right bottom left" to PDFMake "[left, top, right, bottom]"
+        // Ensure all values are valid numbers (not undefined/null)
+        const hasValidValues = styling.paddingInfo.every(v => typeof v === 'number' && !isNaN(v));
+        if (hasValidValues) {
+            cellMargin = styling.paddingInfo;
+        }
+    }
+    
+    // Build cell object if we have special attributes, multiple children (array), OR padding (which becomes margin)
     // Multiple children always need to be wrapped in a stack
     const hasSpecialAttrs = colSpan > 1 || border || Object.keys(styling.cellProps).length > 0;
-    const needsCellObject = hasSpecialAttrs || Array.isArray(cellContent);
+    const needsCellObject = hasSpecialAttrs || Array.isArray(cellContent) || cellMargin !== null;
     
     if (needsCellObject) {
         // Build cell object
@@ -265,6 +276,11 @@ function convertTableCell(node, children, traverse, tableMeta) {
         // Add border if present (legacy support)
         if (border) {
             cellObject.border = border;
+        }
+        
+        // Add margin from padding if present
+        if (cellMargin !== null) {
+            cellObject.margin = cellMargin;
         }
         
         // Add cell styling properties (fontSize, bold, alignment, fillColor, etc.)
