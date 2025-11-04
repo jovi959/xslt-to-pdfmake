@@ -333,7 +333,8 @@ function registerBlockConverterTests(testRunner, converter, testXML, assert) {
         assert.equal(cell.alignment, 'center', 'Should have center alignment');
         
         // Should have padding and margin
-        assert.deepEqual(cell.margin, [20, 5, 20, 5], 'Should have padding converted to cell margin');
+        // User explicitly set padding - respect it completely (padding="5px 20px 5px 20px" -> [20, 5, 20, 5])
+        assert.deepEqual(cell.margin, [20, 5, 20, 5], 'Should respect user-defined padding completely');
         assert.deepEqual(result.margin, [180, 10, 180, 0], 'Should have margin on table');
     });
 

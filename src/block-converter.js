@@ -479,32 +479,39 @@ function parseIndividualBorders(node) {
 }
 
 /**
- * Checks if a block has border properties (including individual sides)
+ * Checks if a block should be converted to a table
+ * Checks all attributes that require table conversion: borders, padding, background
  * @param {Element} node - The fo:block DOM element
- * @returns {boolean} true if block has border properties
+ * @returns {boolean} true if block needs table conversion
  */
-function hasBorder(node) {
-    return !!(node.getAttribute('border') ||
-              node.getAttribute('border-style') || 
-              node.getAttribute('border-width') || 
-              node.getAttribute('border-color') ||
-              node.getAttribute('border-top') ||
-              node.getAttribute('border-top-style') ||
-              node.getAttribute('border-top-width') ||
-              node.getAttribute('border-top-color') ||
-              node.getAttribute('border-bottom') ||
-              node.getAttribute('border-bottom-style') ||
-              node.getAttribute('border-bottom-width') ||
-              node.getAttribute('border-bottom-color') ||
-              node.getAttribute('border-left') ||
-              node.getAttribute('border-left-style') ||
-              node.getAttribute('border-left-width') ||
-              node.getAttribute('border-left-color') ||
-              node.getAttribute('border-right') ||
-              node.getAttribute('border-right-style') ||
-              node.getAttribute('border-right-width') ||
-              node.getAttribute('border-right-color') ||
-              node.getAttribute('padding'));
+function shouldCreateTable(node) {
+    return !!(
+        // Border attributes
+        node.getAttribute('border') ||
+        node.getAttribute('border-style') || 
+        node.getAttribute('border-width') || 
+        node.getAttribute('border-color') ||
+        node.getAttribute('border-top') ||
+        node.getAttribute('border-top-style') ||
+        node.getAttribute('border-top-width') ||
+        node.getAttribute('border-top-color') ||
+        node.getAttribute('border-bottom') ||
+        node.getAttribute('border-bottom-style') ||
+        node.getAttribute('border-bottom-width') ||
+        node.getAttribute('border-bottom-color') ||
+        node.getAttribute('border-left') ||
+        node.getAttribute('border-left-style') ||
+        node.getAttribute('border-left-width') ||
+        node.getAttribute('border-left-color') ||
+        node.getAttribute('border-right') ||
+        node.getAttribute('border-right-style') ||
+        node.getAttribute('border-right-width') ||
+        node.getAttribute('border-right-color') ||
+        // Padding attribute
+        node.getAttribute('padding') ||
+        // Background attribute
+        node.getAttribute('background-color')
+    );
 }
 
 /**
@@ -730,7 +737,7 @@ function convertBlock(node, children, traverse) {
     
     // If block has borders, background-color, or padding, convert to table
     // (Note: self-closing blocks are already handled above and return early)
-    if (hasBorder(node) || background !== undefined) {
+    if (shouldCreateTable(node)) {
         // Parse individual border properties for each side
         const borders = parseIndividualBorders(node);
         
@@ -748,19 +755,29 @@ function convertBlock(node, children, traverse) {
             cellContent.fillColor = background;
         }
         
-        // Convert padding to margin inside the cell
-        if (padding !== undefined) {
-            cellContent.margin = padding;
-        }
-        
         // Determine which borders are actually present
         const hasTopBorder = borders.top.width !== undefined && borders.top.width > 0;
         const hasBottomBorder = borders.bottom.width !== undefined && borders.bottom.width > 0;
         const hasLeftBorder = borders.left.width !== undefined && borders.left.width > 0;
         const hasRightBorder = borders.right.width !== undefined && borders.right.width > 0;
+        const hasBorders = hasLeftBorder || hasRightBorder || hasTopBorder || hasBottomBorder;
         
         // Set border array: [left, top, right, bottom]
         cellContent.border = [hasLeftBorder, hasTopBorder, hasRightBorder, hasBottomBorder];
+        
+        // Convert padding to margin inside the cell
+        // padding format is [left, top, right, bottom]
+        let finalMargin;
+        
+        if (padding !== undefined) {
+            // User explicitly set padding - respect it completely
+            finalMargin = [...padding];
+        } else {
+            // No padding set - use defaults: left=0, top=2, right=0, bottom=3
+            finalMargin = [0, 2, 0, 3];
+        }
+        
+        cellContent.margin = finalMargin;
         
         // Build the table structure
         const tableStructure = {
@@ -830,7 +847,12 @@ function convertBlock(node, children, traverse) {
                     return borders.right.color || '#000000';
                 }
                 return '#000000';
-            }
+            },
+            // Remove default PDFMake padding when borders are present
+            paddingLeft: function(i, node) { return 0; },
+            paddingRight: function(i, node) { return 0; },
+            paddingTop: function(i, node) { return 0; },
+            paddingBottom: function(i, node) { return 0; }
         };
         
         // Apply margin outside the table
@@ -920,7 +942,7 @@ if (typeof module !== 'undefined' && module.exports) {
         parseIndividualBorders,
         parsePadding,
         parseMargin,
-        hasBorder
+        shouldCreateTable
     };
 }
 if (typeof window !== 'undefined') {
@@ -942,7 +964,7 @@ if (typeof window !== 'undefined') {
         parseIndividualBorders,
         parsePadding,
         parseMargin,
-        hasBorder
+        shouldCreateTable
     };
 }
 
