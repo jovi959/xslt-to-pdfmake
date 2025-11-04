@@ -307,6 +307,57 @@ Line 2</fo:block>`;
         assert.ok(!textStr.includes('\n') || textStr === '\n', 'Newlines should be converted to spaces when preserve is not set');
         assert.ok(textStr.includes('Line 1'), 'Should still contain text content');
     });
+
+    testRunner.addTest('linefeed-treatment: Should inherit from parent block to child block', () => {
+        // Test inheritance at the preprocessor level first
+        const xml = `<fo:block xmlns:fo="http://www.w3.org/1999/XSL/Format" linefeed-treatment="preserve">
+            <fo:block>Line 1
+Line 2</fo:block>
+        </fo:block>`;
+        
+        const preprocessor = typeof window !== 'undefined' ? window.InheritancePreprocessor : require('../../src/preprocessor.js');
+        const blockConfig = typeof window !== 'undefined' ? window.BlockInheritanceConfig : require('../../src/block-inheritance-config.js');
+        const config = blockConfig.getBlockInheritanceConfig ? blockConfig.getBlockInheritanceConfig() : blockConfig.BLOCK_INHERITANCE_CONFIG;
+        
+        const result = preprocessor.preprocessInheritance(xml, config);
+        const element = parseXML(result);
+        
+        // Find the child block
+        function findChildBlock(node) {
+            if (!node.childNodes) return null;
+            for (let i = 0; i < node.childNodes.length; i++) {
+                const child = node.childNodes[i];
+                if (child.nodeName === 'fo:block' && child !== node) {
+                    return child;
+                }
+                const found = findChildBlock(child);
+                if (found) return found;
+            }
+            return null;
+        }
+        
+        const childBlock = findChildBlock(element);
+        assert.ok(childBlock, 'Should find child block');
+        
+        // Helper to get attribute
+        function getAttr(element, attrName) {
+            if (element.getAttribute) {
+                return element.getAttribute(attrName);
+            }
+            return element.attributes ? element.attributes[attrName] : null;
+        }
+        
+        // Child block should have inherited linefeed-treatment="preserve"
+        const inheritedValue = getAttr(childBlock, 'linefeed-treatment');
+        assert.equal(inheritedValue, 'preserve', 'Child block should inherit linefeed-treatment="preserve" from parent');
+        
+        // Now test that it actually works in conversion
+        const converted = RecursiveTraversal.traverse(childBlock, BlockConverter.convertBlock);
+        const textStr = typeof converted === 'string' ? converted : (converted.text || JSON.stringify(converted));
+        assert.ok(textStr.includes('\n'), 'Child block should preserve newlines due to inherited linefeed-treatment');
+        assert.ok(textStr.includes('Line 1'), 'Should contain first line');
+        assert.ok(textStr.includes('Line 2'), 'Should contain second line');
+    });
 }
 
 // Export for both browser and Node.js

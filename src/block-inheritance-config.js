@@ -21,7 +21,8 @@ const INHERITABLE_TEXT_ATTRIBUTES = [
     "line-height",
     "text-indent",
     "letter-spacing",
-    "word-spacing"
+    "word-spacing",
+    "linefeed-treatment"
 ];
 
 /**
@@ -50,6 +51,7 @@ const INHERITABLE_TEXT_ATTRIBUTES = [
  * - text-indent: Text indentation
  * - letter-spacing: Space between letters
  * - word-spacing: Space between words
+ * - linefeed-treatment: Line feed treatment (preserve, ignore, etc.)
  */
 const BLOCK_INHERITANCE_CONFIG = [
     // Block can pass attributes to blocks, inlines, and list-blocks
