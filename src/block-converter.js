@@ -657,6 +657,15 @@ function convertBlock(node, children, traverse) {
         // If no items, fall through to default behavior
     }
     
+    // Check if this is a self-closing block (no children)
+    const isSelfClosing = !children || children.length === 0;
+    
+    // Self-closing blocks should NOT be converted to tables, even with padding/border/background
+    // They are just newline characters: <fo:block/> → "\n"
+    if (isSelfClosing) {
+        return '\n';
+    }
+    
     // Build the text content (non-structured elements)
     let textContent;
     
@@ -711,8 +720,7 @@ function convertBlock(node, children, traverse) {
             textContent = children.length === 1 ? children[0] : children;
         }
     } else {
-        // No children - self-closing block becomes newline character
-        // <fo:block/> → "\n" (used for line breaks within parent block)
+        // Fallback for edge case (shouldn't reach here due to isSelfClosing check above)
         textContent = '\n';
     }
     
@@ -720,8 +728,9 @@ function convertBlock(node, children, traverse) {
     const padding = parsePadding(node.getAttribute('padding'));
     const margin = parseMargin(node.getAttribute('margin'));
     
-    // If block has borders or padding, convert to table
-    if (hasBorder(node)) {
+    // If block has borders, background-color, or padding, convert to table
+    // (Note: self-closing blocks are already handled above and return early)
+    if (hasBorder(node) || background !== undefined) {
         // Parse individual border properties for each side
         const borders = parseIndividualBorders(node);
         

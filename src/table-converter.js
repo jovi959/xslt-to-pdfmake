@@ -478,13 +478,67 @@ function buildTableLayout(tableMeta) {
     const layout = {};
     let hasBorderFunctions = false;
     
-    // Only use layout functions if ALL cells have borders and they're all the same
-    // If only some cells have borders, they should use individual cell.border property
-    if (tableMeta.hasCellBorders && 
+    // Check for outer/inner border pattern (table border + cell border)
+    // This is the common XSL-FO pattern where:
+    // - fo:table defines outer border (edge of table)
+    // - fo:table-cell defines inner border (between cells)
+    const hasTableBorder = tableMeta.tableBorder && 
+        (tableMeta.tableBorder.width !== undefined || 
+         tableMeta.tableBorder.color !== undefined);
+    
+    // Cell border exists if at least one cell has a border
+    // (Don't require ALL cells to have borders - common pattern is some cells with borders, some without)
+    const hasCellBorder = tableMeta.hasCellBorders && 
         tableMeta.cellBorders && 
-        tableMeta.cellBorders.length > 0 &&
-        tableMeta.cellBorders.length === tableMeta.totalCells) {
+        tableMeta.cellBorders.length > 0;
+    
+    // Pattern 1: Table border + Cell border (outer/inner pattern)
+    if (hasTableBorder && hasCellBorder) {
+        // Check if all cell borders that exist are the same
+        const firstCellBorder = tableMeta.cellBorders[0];
+        const allCellsSame = tableMeta.cellBorders.every(b => 
+            b.width === firstCellBorder.width && 
+            b.color === firstCellBorder.color && 
+            b.style === firstCellBorder.style
+        );
         
+        if (allCellsSame) {
+            // Use cell border width for all lines (inner and outer)
+            // In XSL-FO, both table and cell borders typically use the same width
+            const borderWidth = firstCellBorder.width || tableMeta.tableBorder.width || 1;
+            
+            // Table border color for outer edges
+            const outerColor = tableMeta.tableBorder.color || '#000000';
+            
+            // Cell border color for inner edges  
+            const innerColor = firstCellBorder.color || '#AAAAAA';
+            
+            layout.hLineWidth = function(i, node) { return borderWidth; };
+            layout.vLineWidth = function(i, node) { return borderWidth; };
+            
+            // Horizontal lines: top (i=0) and bottom (i=body.length) are outer
+            layout.hLineColor = function(i, node) {
+                if (i === 0 || i === node.table.body.length) {
+                    return outerColor; // Outer border (table)
+                }
+                return innerColor; // Inner border (cell)
+            };
+            
+            // Vertical lines: left (i=0) and right (i=widths.length) are outer
+            layout.vLineColor = function(i, node) {
+                if (i === 0 || i === node.table.widths.length) {
+                    return outerColor; // Outer border (table)
+                }
+                return innerColor; // Inner border (cell)
+            };
+            
+            hasBorderFunctions = true;
+        }
+    }
+    // Pattern 2: Only cell borders (all same) - uniform border
+    // Only use this pattern if ALL cells have borders (for consistent appearance)
+    else if (!hasTableBorder && hasCellBorder && 
+             tableMeta.cellBorders.length === tableMeta.totalCells) {
         // Check if all borders are the same
         const firstBorder = tableMeta.cellBorders[0];
         const allSame = tableMeta.cellBorders.every(b => 
@@ -503,6 +557,17 @@ function buildTableLayout(tableMeta) {
             layout.vLineColor = function(i, node) { return borderColor; };
             hasBorderFunctions = true;
         }
+    }
+    // Pattern 3: Only table border - apply to all edges
+    else if (hasTableBorder && !hasCellBorder) {
+        const borderWidth = tableMeta.tableBorder.width || 1;
+        const borderColor = tableMeta.tableBorder.color || '#000000';
+        
+        layout.hLineWidth = function(i, node) { return borderWidth; };
+        layout.vLineWidth = function(i, node) { return borderWidth; };
+        layout.hLineColor = function(i, node) { return borderColor; };
+        layout.vLineColor = function(i, node) { return borderColor; };
+        hasBorderFunctions = true;
     }
     
     // Only set defaultBorder: false if we don't have border functions
@@ -566,8 +631,34 @@ function convertTable(node, children, traverse) {
         hasNestedTables: false,  // Track if table contains nested tables
         cellBorders: [],
         cellPadding: [],
-        totalCells: 0  // Track total cells to ensure all have same styling
+        totalCells: 0,  // Track total cells to ensure all have same styling
+        tableBorder: {}  // Track table-level border (for outer/inner pattern)
     };
+    
+    // Extract table-level border properties (for outer border in outer/inner pattern)
+    const tableBorder = node.getAttribute('border');
+    const tableBorderStyle = node.getAttribute('border-style');
+    const tableBorderColor = node.getAttribute('border-color');
+    const tableBorderWidth = node.getAttribute('border-width');
+    
+    if (tableBorder || tableBorderStyle || tableBorderColor || tableBorderWidth) {
+        // Parse shorthand border first
+        if (tableBorder && _deps.BlockConverter && _deps.BlockConverter.parseBorderShorthand) {
+            tableMeta.tableBorder = _deps.BlockConverter.parseBorderShorthand(tableBorder);
+        } else {
+            // Initialize empty object for individual properties
+            tableMeta.tableBorder = {};
+        }
+        
+        // Individual properties override shorthand
+        if (tableBorderStyle) tableMeta.tableBorder.style = tableBorderStyle;
+        if (tableBorderColor && _deps.BlockConverter && _deps.BlockConverter.parseColor) {
+            tableMeta.tableBorder.color = _deps.BlockConverter.parseColor(tableBorderColor);
+        }
+        if (tableBorderWidth && _deps.BlockConverter && _deps.BlockConverter.parseBorderWidth) {
+            tableMeta.tableBorder.width = _deps.BlockConverter.parseBorderWidth(tableBorderWidth);
+        }
+    }
 
     // Parse column widths from <fo:table-column> elements
     const rawWidths = parseTableColumns(node);

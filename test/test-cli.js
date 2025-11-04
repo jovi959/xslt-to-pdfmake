@@ -971,6 +971,7 @@ async function main() {
     const { registerListInheritanceTests } = require('./tests/list-inheritance.test.js');
     const { registerFontWeightOverrideTests } = require('./tests/font-weight-override.test.js');
     const { registerNestedTableTests } = require('./tests/nested-table.test.js');
+    const { registerTableOuterInnerBorderTests } = require('./tests/table-outer-inner-border.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1066,6 +1067,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load table outer/inner border test data
+    const tableOuterInnerBorderXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'table_outer_inner_border.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1101,6 +1108,7 @@ async function main() {
     registerNestedTableTests(testRunner, converter, nestedTableXML, assert);
     registerFontWeightOverrideTests(testRunner, converter, fontWeightXML, assert);
     registerTableMarginTests(testRunner, converter, tableMarginXML, assert);
+    registerTableOuterInnerBorderTests(testRunner, converter, tableOuterInnerBorderXML, assert);
 
     // Run all tests
     await testRunner.runTests();

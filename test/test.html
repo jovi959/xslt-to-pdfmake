@@ -518,6 +518,7 @@
     <script src="tests/text-array-structure.test.js"></script>
     <script src="tests/nested-table.test.js"></script>
     <script src="tests/font-weight-override.test.js"></script>
+    <script src="tests/table-outer-inner-border.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -562,6 +563,7 @@
         let textArrayXML = null;
         let nestedTableXML = null;
         let fontWeightXML = null;
+        let tableOuterInnerBorderXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -620,6 +622,7 @@
                 textArrayXML = await loadTestFile('data/text_array_structure.xslt');
                 nestedTableXML = await loadTestFile('data/nested_table.xslt');
                 fontWeightXML = await loadTestFile('data/font_weight_override.xslt');
+                tableOuterInnerBorderXML = await loadTestFile('data/table_outer_inner_border.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -671,7 +674,8 @@
                 { registerFn: registerNestedListInBlockTests, xml: nestedListXML, name: 'nested_list_in_block.xslt' },
                 { registerFn: registerTextArrayStructureTests, xml: textArrayXML, name: 'text_array_structure.xslt' },
                 { registerFn: registerNestedTableTests, xml: nestedTableXML, name: 'nested_table.xslt' },
-                { registerFn: registerFontWeightOverrideTests, xml: fontWeightXML, name: 'font_weight_override.xslt' }
+                { registerFn: registerFontWeightOverrideTests, xml: fontWeightXML, name: 'font_weight_override.xslt' },
+                { registerFn: registerTableOuterInnerBorderTests, xml: tableOuterInnerBorderXML, name: 'table_outer_inner_border.xslt' }
             ];
             
             // Register each test suite and map to its data file
