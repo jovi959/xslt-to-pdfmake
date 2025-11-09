@@ -118,6 +118,8 @@ if (typeof registerTextArrayStructureTests === 'function') {
 }
 // Note: registerTableOuterInnerBorderTests requires specific test data (tableOuterInnerBorderXML)
 // and is registered directly in test-cli.js and test.html, not here
+// Note: registerDocStructureParserTests requires specific test data (layoutMasterXML)
+// and is registered directly in test-cli.js and test.html, not here
 }
 
 // Export for use in both browser and Node.js

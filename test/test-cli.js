@@ -912,6 +912,7 @@ async function main() {
     const ListConverter = require('../src/list-converter.js');
     const InheritancePreprocessor = require('../src/preprocessor.js');
     const BlockInheritanceConfig = require('../src/block-inheritance-config.js');
+    const DocStructureParser = require('../src/doc-structure-parser.js');
     
     // Make modules available globally for tests (similar to browser)
     // Set up window-like environment for tests that expect browser globals
@@ -972,6 +973,7 @@ async function main() {
     const { registerFontWeightOverrideTests } = require('./tests/font-weight-override.test.js');
     const { registerNestedTableTests } = require('./tests/nested-table.test.js');
     const { registerTableOuterInnerBorderTests } = require('./tests/table-outer-inner-border.test.js');
+    const { registerDocStructureParserTests } = require('./tests/doc-structure-parser.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1073,6 +1075,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load layout master set test data
+    const layoutMasterXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'layout_master_set.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1109,6 +1117,7 @@ async function main() {
     registerFontWeightOverrideTests(testRunner, converter, fontWeightXML, assert);
     registerTableMarginTests(testRunner, converter, tableMarginXML, assert);
     registerTableOuterInnerBorderTests(testRunner, converter, tableOuterInnerBorderXML, assert);
+    registerDocStructureParserTests(testRunner, converter, layoutMasterXML, assert);
 
     // Run all tests
     await testRunner.runTests();

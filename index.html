@@ -230,6 +230,10 @@ Example:
                 </div>
             </div>
             <div class="panel-content">
+                <div id="structureVariables" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #667eea;">
+                    <h3 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 10px;">📐 Document Structure Variables</h3>
+                    <div id="structureContent"></div>
+                </div>
                 <div id="output"></div>
                     </div>
                 </div>
@@ -266,6 +270,7 @@ Example:
     <script src="src/preprocessor.js"></script>
     <script src="src/block-inheritance-config.js"></script>
     <script src="src/table-inheritance-config.js"></script>
+    <script src="src/doc-structure-parser.js"></script>
     <script src="src/xslt-to-pdfmake.js"></script>
     <script src="src/doc-definition-formatter.js"></script>
 
@@ -310,6 +315,7 @@ Example:
                 outputSizeEl.textContent = '0 bytes';
                 pdfBtn.disabled = true;
                 lastConversion = null;
+                document.getElementById('structureVariables').style.display = 'none';
                 return;
             }
             
@@ -338,6 +344,44 @@ Example:
                 const result = converter.convertToPDFMake(xmlInput);
                 lastConversion = result;
 
+                // Parse document structure if available
+                const structureVarsDiv = document.getElementById('structureVariables');
+                const structureContentDiv = document.getElementById('structureContent');
+                
+                if (window.DocStructureParser) {
+                    try {
+                        const docStructure = window.DocStructureParser.parseDocumentStructure(xmlInput, converter);
+                        
+                        // Check if we have any structure to display
+                        const hasMasters = Object.keys(docStructure.simplePageMasters).length > 0;
+                        const hasSequences = Object.keys(docStructure.sequences).length > 0;
+                        
+                        if (hasMasters || hasSequences) {
+                            // Display structure variables
+                            let structureOutput = '';
+                            
+                            if (hasMasters) {
+                                structureOutput += 'simplePageMasters = ' + JSON.stringify(docStructure.simplePageMasters, null, 2);
+                            }
+                            
+                            if (hasSequences) {
+                                if (structureOutput) structureOutput += '\n\n';
+                                structureOutput += 'sequences = ' + JSON.stringify(docStructure.sequences, null, 2);
+                            }
+                            
+                            structureContentDiv.innerHTML = `<pre style="margin: 0; font-size: 12px; line-height: 1.5;">${escapeHtml(structureOutput)}</pre>`;
+                            structureVarsDiv.style.display = 'block';
+                        } else {
+                            structureVarsDiv.style.display = 'none';
+                        }
+                    } catch (e) {
+                        console.warn('Could not parse document structure:', e);
+                        structureVarsDiv.style.display = 'none';
+                    }
+                } else {
+                    structureVarsDiv.style.display = 'none';
+                }
+
                 // Format output
                 const formatted = formatDocDefinitionAsCode(result);
                 outputEl.innerHTML = `<pre>${escapeHtml(formatted)}</pre>`;
@@ -358,6 +402,7 @@ Example:
                 statusEl.innerHTML = '<span style="color: #dc3545;">❌ Error</span>';
                 pdfBtn.disabled = true;
                 lastConversion = null;
+                document.getElementById('structureVariables').style.display = 'none';
             }
         }
 
