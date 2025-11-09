@@ -774,7 +774,7 @@ function convertBlock(node, children, traverse) {
             finalMargin = [...padding];
         } else {
             // No padding set - use defaults: left=0, top=2, right=0, bottom=3
-            finalMargin = [0, 2, 0, 3];
+            finalMargin = [0, 2, 0, 2];
         }
         
         cellContent.margin = finalMargin;
