@@ -113,7 +113,7 @@ function registerDocStructureParserTests(testRunner, converter, layoutMasterXML,
         assert.equal(body.margins.length, 4, 'Body margins should have 4 elements');
     });
 
-    testRunner.addTest('Should calculate body margins: left and right from page, top and bottom zero', () => {
+    testRunner.addTest('Should store region-body margins only (not including page margins)', () => {
         const result = (typeof window !== 'undefined' && window.DocStructureParser) 
             ? window.DocStructureParser.parseDocumentStructure(layoutMasterXML, converter)
             : require('../../src/doc-structure-parser.js').parseDocumentStructure(layoutMasterXML, converter);
@@ -121,10 +121,12 @@ function registerDocStructureParserTests(testRunner, converter, layoutMasterXML,
         const firstMaster = result.simplePageMasters['first'];
         const body = firstMaster.body;
         
-        assert.approximately(body.margins[0], 18, 0.1, 'Body left should be 18pt (from page)');
-        assert.equal(body.margins[1], 0, 'Body top should be 0');
-        assert.approximately(body.margins[2], 18, 0.1, 'Body right should be 18pt (from page)');
-        assert.equal(body.margins[3], 0, 'Body bottom should be 0');
+        // region-body margin="1in 0in 1.2cm 0in" -> [left=0, top=72, right=0, bottom=34]
+        // body.margins should only contain region-body margins (page margins are added in calculatePageMarginsFromMaster)
+        assert.equal(body.margins[0], 0, 'Body left should be 0 (region-body left only)');
+        assert.equal(body.margins[1], 0, 'Body top should be 0 (always 0 for body)');
+        assert.equal(body.margins[2], 0, 'Body right should be 0 (region-body right only)');
+        assert.equal(body.margins[3], 0, 'Body bottom should be 0 (always 0 for body)');
     });
 
     testRunner.addTest('Should parse footer with correct properties', () => {

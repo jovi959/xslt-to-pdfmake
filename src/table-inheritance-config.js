@@ -6,6 +6,13 @@
 
 const TABLE_INHERITANCE_CONFIG = [
     {
+        tag: "table-row",
+        inheriters: ["table-cell"],
+        inheritable_attributes: [
+            "background-color"
+        ]
+    },
+    {
         tag: "table-cell",
         inheriters: ["block", "inline"],
         inheritable_attributes: [

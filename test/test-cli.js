@@ -913,6 +913,7 @@ async function main() {
     const InheritancePreprocessor = require('../src/preprocessor.js');
     const BlockInheritanceConfig = require('../src/block-inheritance-config.js');
     const DocStructureParser = require('../src/doc-structure-parser.js');
+    const { DocumentStructureParser } = DocStructureParser;
     
     // Make modules available globally for tests (similar to browser)
     // Set up window-like environment for tests that expect browser globals
@@ -924,6 +925,8 @@ async function main() {
     global.BlockConverter = BlockConverter;
     global.ListConverter = ListConverter;
     global.DOMParser = DOMParser;
+    global.DocStructureParser = DocStructureParser;
+    global.DocumentStructureParser = DocumentStructureParser;
     
     // Load table inheritance config
     const TableInheritanceConfig = require('../src/table-inheritance-config.js');
@@ -936,6 +939,8 @@ async function main() {
     global.window.BlockInheritanceConfig = BlockInheritanceConfig;
     global.window.TableInheritanceConfig = TableInheritanceConfig;
     global.window.DOMParser = DOMParser;
+    global.window.DocStructureParser = DocStructureParser;
+    global.window.DocumentStructureParser = DocumentStructureParser;
     global.SimpleXMLParser = SimpleXMLParser; // Make SimpleXMLParser available to preprocessor
 
     // Load all test files
@@ -974,6 +979,12 @@ async function main() {
     const { registerNestedTableTests } = require('./tests/nested-table.test.js');
     const { registerTableOuterInnerBorderTests } = require('./tests/table-outer-inner-border.test.js');
     const { registerDocStructureParserTests } = require('./tests/doc-structure-parser.test.js');
+    const { registerFlowFilteringTests } = require('./tests/flow-filtering.test.js');
+    const { registerHeaderFooterDetectionTests } = require('./tests/header-footer-detection.test.js');
+    const { registerHeaderFooterInfoTests } = require('./tests/header-footer-info.test.js');
+    const { registerStaticContentLayoutTests } = require('./tests/static-content-layout.test.js');
+    const { registerHeadersFootersPopulationTests } = require('./tests/headers-footers-population.test.js');
+    const { registerTableRowBackgroundTests } = require('./tests/table-row-background.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1081,6 +1092,12 @@ async function main() {
         'utf-8'
     );
     
+    // Load table row background test data
+    const tableRowBackgroundXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'table_row_background.xslt'),
+        'utf-8'
+    );
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1117,7 +1134,75 @@ async function main() {
     registerFontWeightOverrideTests(testRunner, converter, fontWeightXML, assert);
     registerTableMarginTests(testRunner, converter, tableMarginXML, assert);
     registerTableOuterInnerBorderTests(testRunner, converter, tableOuterInnerBorderXML, assert);
+    registerTableRowBackgroundTests(testRunner, converter, tableRowBackgroundXML, assert);
     registerDocStructureParserTests(testRunner, converter, layoutMasterXML, assert);
+
+    // Register flow filtering tests
+    const flowFilteringXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'flow_filtering.xslt'),
+        'utf-8'
+    );
+    registerFlowFilteringTests(testRunner, converter, flowFilteringXML, assert);
+
+    // Register header/footer detection tests
+    const headerFooterDetectionXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'header_footer_detection.xslt'),
+        'utf-8'
+    );
+    registerHeaderFooterDetectionTests(testRunner, converter, headerFooterDetectionXML, assert);
+
+    // Register header/footer information tests
+    const headerFooterInfoXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'header_footer_info.xslt'),
+        'utf-8'
+    );
+    registerHeaderFooterInfoTests(testRunner, converter, headerFooterInfoXML, assert);
+    
+    // Register static content layout tests with dedicated test data
+    const staticContentLayoutXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'static_content_layout.xslt'),
+        'utf-8'
+    );
+    registerStaticContentLayoutTests(testRunner, converter, staticContentLayoutXML, assert);
+    
+    // Register headers/footers population tests with dedicated test data
+    const headersFootersPopulationXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'headers_footers_population.xslt'),
+        'utf-8'
+    );
+    registerHeadersFootersPopulationTests(testRunner, converter, headersFootersPopulationXML, assert);
+    
+    // Register multi-sequence conversion tests
+    const multiSequenceXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'multi_sequence.xslt'),
+        'utf-8'
+    );
+    const multiHeaderXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'multi_header.xslt'),
+        'utf-8'
+    );
+    const multiFooterXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'multi_footer.xslt'),
+        'utf-8'
+    );
+    const { registerMultiSequenceConversionTests } = require('./tests/multi-sequence-conversion.test.js');
+    registerMultiSequenceConversionTests(testRunner, converter, multiSequenceXML, assert, multiHeaderXML, multiFooterXML);
+    
+    // Register header/footer margins tests
+    const headerFooterMarginsXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'header_footer_margins.xslt'),
+        'utf-8'
+    );
+    const { registerHeaderFooterMarginsTests } = require('./tests/header-footer-margins.test.js');
+    registerHeaderFooterMarginsTests(testRunner, converter, headerFooterMarginsXML, assert);
+    
+    // Register page margins calculation tests
+    const pageMarginsCalculationXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'page_margins_calculation.xslt'),
+        'utf-8'
+    );
+    const { registerPageMarginsCalculationTests } = require('./tests/page-margins-calculation.test.js');
+    registerPageMarginsCalculationTests(testRunner, converter, pageMarginsCalculationXML, assert);
 
     // Run all tests
     await testRunner.runTests();

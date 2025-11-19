@@ -226,6 +226,7 @@ Example:
                 <h2>🔄 PDFMake Output</h2>
                 <div class="btn-group">
                     <button class="btn btn-primary" onclick="generatePDF()" id="pdfBtn">📄 Generate PDF</button>
+                    <button class="btn btn-primary" onclick="generateMultiSequencePDF()" id="multiPdfBtn" style="background: #764ba2;">📑 Multi-Sequence PDF</button>
                     <button class="btn btn-secondary" onclick="copyOutput()">📋 Copy</button>
                 </div>
             </div>
@@ -255,6 +256,7 @@ Example:
     </div>
 
     <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="lib/pdfmake.min.js"></script>
     <script src="lib/vfs_fonts.js"></script>
     <script src="lib/custom-fonts.js"></script>
@@ -355,8 +357,10 @@ Example:
                         // Check if we have any structure to display
                         const hasMasters = Object.keys(docStructure.simplePageMasters).length > 0;
                         const hasSequences = Object.keys(docStructure.sequences).length > 0;
+                        const hasHeaders = docStructure.headers && docStructure.headers.length > 0;
+                        const hasFooters = docStructure.footers && docStructure.footers.length > 0;
                         
-                        if (hasMasters || hasSequences) {
+                        if (hasMasters || hasSequences || hasHeaders || hasFooters) {
                             // Display structure variables
                             let structureOutput = '';
                             
@@ -367,6 +371,26 @@ Example:
                             if (hasSequences) {
                                 if (structureOutput) structureOutput += '\n\n';
                                 structureOutput += 'sequences = ' + JSON.stringify(docStructure.sequences, null, 2);
+                            }
+                            
+                            if (hasHeaders) {
+                                if (structureOutput) structureOutput += '\n\n';
+                                // Convert headers to displayable format (show function source)
+                                const headersDisplay = docStructure.headers.map(h => ({
+                                    information: h.information,
+                                    structure: typeof h.structure === 'function' ? h.structure.toString() : h.structure
+                                }));
+                                structureOutput += 'headers = ' + JSON.stringify(headersDisplay, null, 2);
+                            }
+                            
+                            if (hasFooters) {
+                                if (structureOutput) structureOutput += '\n\n';
+                                // Convert footers to displayable format (show function source)
+                                const footersDisplay = docStructure.footers.map(f => ({
+                                    information: f.information,
+                                    structure: typeof f.structure === 'function' ? f.structure.toString() : f.structure
+                                }));
+                                structureOutput += 'footers = ' + JSON.stringify(footersDisplay, null, 2);
                             }
                             
                             structureContentDiv.innerHTML = `<pre style="margin: 0; font-size: 12px; line-height: 1.5;">${escapeHtml(structureOutput)}</pre>`;
@@ -425,6 +449,55 @@ Example:
             } catch (error) {
                 console.error('PDF generation error:', error);
                 alert('Error generating PDF: ' + error.message);
+            }
+        }
+
+        // Generate Multi-Sequence PDF
+        async function generateMultiSequencePDF() {
+            const input = inputEl.value.trim();
+            
+            if (!input) {
+                alert('No input available. Please enter XSL-FO XML first.');
+                return;
+            }
+            
+            try {
+                statusEl.innerHTML = '<span class="loading">Generating multi-sequence PDF...</span>';
+                
+                // Wrap input if needed
+                let xmlInput = input;
+                if (!input.includes('<fo:root') && !input.includes('<root')) {
+                    xmlInput = `<?xml version="1.0" encoding="UTF-8"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="page" page-width="8.5in" page-height="11in" margin="1in">
+      <fo:region-body margin="0.5in"/>
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+  <fo:page-sequence master-reference="page">
+    <fo:flow flow-name="xsl-region-body">
+      ${input}
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>`;
+                }
+                
+                const pdfBytes = await converter.convertXSLFOToPDF(xmlInput);
+                
+                // Open PDF in new window (no download)
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                
+                // Clean up the URL after a short delay
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+                
+                statusEl.innerHTML = '<span style="color: green;">✅ Multi-sequence PDF generated and opened</span>';
+                console.log('✅ Multi-sequence PDF generated and opened in new window');
+            } catch (error) {
+                console.error('Multi-sequence PDF generation error:', error);
+                statusEl.innerHTML = '<span style="color: red;">❌ Error: ' + error.message + '</span>';
+                alert('Error generating multi-sequence PDF: ' + error.message);
             }
         }
 

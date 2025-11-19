@@ -224,9 +224,10 @@ class XSLToPDFMakeConverter {
      * Extract and convert content from XSL-FO flow elements
      * This method coordinates the recursive traversal and block conversion
      * @param {string} xslfoXml - XSL-FO XML string
+     * @param {string} flowName - Optional flow name to filter (e.g., 'xsl-region-body', 'first_before')
      * @returns {Array} Array of converted content items
      */
-    extractContent(xslfoXml) {
+    extractContent(xslfoXml, flowName = null) {
         try {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xslfoXml, 'text/xml');
@@ -237,8 +238,17 @@ class XSLToPDFMakeConverter {
                 throw new Error('XML parsing error: ' + parserError.textContent);
             }
 
-            // Find all flow elements (where content lives)
-            const flows = xmlDoc.querySelectorAll('flow, fo\\:flow');
+            // Find flow elements (where content lives)
+            let flows;
+            if (flowName) {
+                // If flow name specified, search both <fo:flow> and <fo:static-content>
+                const allFlows = xmlDoc.querySelectorAll('flow, fo\\:flow, static-content, fo\\:static-content');
+                flows = Array.from(allFlows).filter(flow => flow.getAttribute('flow-name') === flowName);
+            } else {
+                // Default behavior: only process <fo:flow> elements (main content)
+                flows = Array.from(xmlDoc.querySelectorAll('flow, fo\\:flow'));
+            }
+            
             const content = [];
 
             // If no flows found, return empty content
@@ -396,6 +406,7 @@ class XSLToPDFMakeConverter {
      * @param {string} xslfoXml - XSL-FO XML string
      * @param {Object} options - Optional conversion options
      * @param {boolean} options.skipPreprocessing - Skip inheritance preprocessing (default: false)
+     * @param {string} options.flowName - Optional flow name to extract (e.g., 'xsl-region-body', 'first_before')
      * @returns {Object} PDFMake document definition with pageSize, pageMargins, and content
      */
     convertToPDFMake(xslfoXml, options = {}) {
@@ -461,7 +472,7 @@ class XSLToPDFMakeConverter {
         );
 
         // Extract and convert content (use preprocessed XML)
-        let content = this.extractContent(processedXml);
+        let content = this.extractContent(processedXml, options.flowName);
         
         // Post-process content for keep-with-previous properties
         const keepProperties = typeof window !== 'undefined'
@@ -579,6 +590,199 @@ class XSLToPDFMakeConverter {
         `;
         
         return new Function('currentPage', 'pageCount', functionBody);
+    }
+
+    /**
+     * Create PDF Blob from PDFMake definition
+     * @param {Object} docDefinition - PDFMake document definition
+     * @returns {Promise<Blob>} PDF blob
+     */
+    createPdfBlob(docDefinition) {
+        return new Promise((resolve) => {
+            pdfMake.createPdf(docDefinition).getBlob((blob) => {
+                resolve(blob);
+            });
+        });
+    }
+
+    /**
+     * Get page count from PDF blob
+     * @param {Blob} blob - PDF blob
+     * @returns {Promise<number>} Number of pages
+     */
+    async getPageCount(blob) {
+        const arrayBuffer = await blob.arrayBuffer();
+        const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+        return pdf.getPageCount();
+    }
+
+    /**
+     * Convert XSL-FO with multiple page-sequences to merged PDF
+     * Calculates page counts and offsets for future page numbering feature
+     * @param {string} xslfoXml - XSL-FO XML string
+     * @returns {Promise<Uint8Array>} Merged PDF bytes
+     */
+    async convertXSLFOToPDF(xslfoXml) {
+        // Step 1: Get preprocessed structure
+        const parseDocumentStructure = typeof window !== 'undefined' && window.DocStructureParser
+            ? window.DocStructureParser.parseDocumentStructure
+            : require('./doc-structure-parser.js').parseDocumentStructure;
+        
+        const docStructure = parseDocumentStructure(xslfoXml, this);
+        const pageSequenceKeys = Object.keys(docStructure.sequences);
+        
+        // Fallback if no sequences
+        if (pageSequenceKeys.length === 0) {
+            return this.convertToPDFMake(xslfoXml);
+        }
+        
+        // Step 2: Build document definitions for each sequence
+        const docDefs = [];
+        
+        for (const masterRef of pageSequenceKeys) {
+            const sequenceMaster = docStructure.sequences[masterRef];
+            const pageMaster = sequenceMaster.first || sequenceMaster.repeatable;
+            
+            if (!pageMaster || !pageMaster.body || !pageMaster.body.name) {
+                continue;
+            }
+            
+            const bodyFlowName = pageMaster.body.name;
+            const fullDef = this.convertToPDFMake(xslfoXml, { flowName: bodyFlowName });
+            const content = fullDef.content;
+            
+            const sequenceHeaders = docStructure.headers.filter(h => 
+                h.information && h.information['page-sequence-master'] === masterRef
+            );
+            const sequenceFooters = docStructure.footers.filter(f => 
+                f.information && f.information['page-sequence-master'] === masterRef
+            );
+            
+            const docDef = {
+                pageSize: pageMaster.pageInfo,
+                pageMargins: pageMaster.calculatedPageMargins || pageMaster.pageMargin,
+                content: content,
+                defaultStyle: { font: 'NimbusSan' }
+            };
+            
+            // Create super header function that loops through all headers and returns the matching one
+            if (sequenceHeaders.length > 0) {
+                docDef.header = function(currentPage, pageCount) {
+                    for (const headerEntry of sequenceHeaders) {
+                        const result = headerEntry.structure(currentPage, pageCount);
+                        if (result && result !== '') {
+                            // Get the appropriate page master for this page
+                            const isFirstPage = currentPage === 1 && sequenceMaster.first;
+                            const currentPageMaster = isFirstPage ? sequenceMaster.first : sequenceMaster.repeatable;
+                            
+                            // Apply header margins from simplePageMasters
+                            if (currentPageMaster && currentPageMaster.header && currentPageMaster.header.margins) {
+                                // Wrap content with margin - handle both array and object content
+                                if (Array.isArray(result)) {
+                                    return {
+                                        margin: currentPageMaster.header.margins,
+                                        stack: result
+                                    };
+                                } else if (typeof result === 'object') {
+                                    return {
+                                        margin: currentPageMaster.header.margins,
+                                        ...result
+                                    };
+                                } else {
+                                    return {
+                                        margin: currentPageMaster.header.margins,
+                                        text: result
+                                    };
+                                }
+                            }
+                            return result;
+                        }
+                    }
+                    return '';
+                };
+            }
+            
+            // Create super footer function that loops through all footers and returns the matching one
+            if (sequenceFooters.length > 0) {
+                docDef.footer = function(currentPage, pageCount) {
+                    for (const footerEntry of sequenceFooters) {
+                        const result = footerEntry.structure(currentPage, pageCount);
+                        if (result && result !== '') {
+                            // Get the appropriate page master for this page
+                            const isFirstPage = currentPage === 1 && sequenceMaster.first;
+                            const currentPageMaster = isFirstPage ? sequenceMaster.first : sequenceMaster.repeatable;
+                            
+                            // Apply footer margins from simplePageMasters
+                            if (currentPageMaster && currentPageMaster.footer && currentPageMaster.footer.margins) {
+                                // Wrap content with margin - handle both array and object content
+                                if (Array.isArray(result)) {
+                                    return {
+                                        margin: currentPageMaster.footer.margins,
+                                        stack: result
+                                    };
+                                } else if (typeof result === 'object') {
+                                    return {
+                                        margin: currentPageMaster.footer.margins,
+                                        ...result
+                                    };
+                                } else {
+                                    return {
+                                        margin: currentPageMaster.footer.margins,
+                                        text: result
+                                    };
+                                }
+                            }
+                            return result;
+                        }
+                    }
+                    return '';
+                };
+            }
+            
+            docDefs.push(docDef);
+        }
+        
+        // Step 3: First pass - generate PDFs to get page counts
+        const firstPassBlobs = await Promise.all(docDefs.map(dd => this.createPdfBlob(dd)));
+        
+        // Step 4: Get page count for each PDF
+        const pageCounts = await Promise.all(firstPassBlobs.map(blob => this.getPageCount(blob)));
+        
+        // Step 5: Calculate page offsets and total pages (for future page numbering)
+        const offsets = pageCounts.map((_, i) => pageCounts.slice(0, i).reduce((a, b) => a + b, 0));
+        const totalPages = pageCounts.reduce((a, b) => a + b, 0);
+        
+        // Log calculated values for debugging and future use
+        console.log('Multi-sequence PDF generation:');
+        console.log('  Page counts per sequence:', pageCounts);
+        console.log('  Page offsets:', offsets);
+        console.log('  Total pages:', totalPages);
+        
+        // Step 6: TODO - Second pass with page numbering
+        // When implementing global page numbering, rebuild docDefs here:
+        // const finalDefs = docDefs.map((dd, i) => ({
+        //   ...dd,
+        //   footer: this.buildFooterWithPageNumbers(offsets[i], totalPages, dd.footer)
+        // }));
+        // const finalBlobs = await Promise.all(finalDefs.map(dd => this.createPdfBlob(dd)));
+        
+        // For now, use first pass blobs (no page numbering applied)
+        const finalBlobs = firstPassBlobs;
+        
+        // Step 7: Merge PDFs using pdf-lib
+        const mergedPdf = await PDFLib.PDFDocument.create();
+        
+        for (const blob of finalBlobs) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const sourcePdf = await PDFLib.PDFDocument.load(arrayBuffer);
+            const pageIndices = sourcePdf.getPageIndices();
+            const copiedPages = await mergedPdf.copyPages(sourcePdf, pageIndices);
+            copiedPages.forEach(page => mergedPdf.addPage(page));
+        }
+        
+        // Step 8: Return merged PDF bytes
+        const mergedBytes = await mergedPdf.save();
+        return mergedBytes;
     }
 }
 

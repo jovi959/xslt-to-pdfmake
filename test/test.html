@@ -464,6 +464,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="../lib/pdfmake.min.js"></script>
     <script src="../lib/vfs_fonts.js"></script>
     <script src="../lib/custom-fonts.js"></script>
@@ -521,6 +522,16 @@
     <script src="tests/font-weight-override.test.js"></script>
     <script src="tests/table-outer-inner-border.test.js"></script>
     <script src="tests/doc-structure-parser.test.js"></script>
+    <script src="tests/flow-filtering.test.js"></script>
+    <script src="tests/header-footer-detection.test.js"></script>
+    <script src="tests/header-footer-info.test.js"></script>
+    <script src="tests/static-content-layout.test.js"></script>
+    <script src="tests/headers-footers-population.test.js"></script>
+    <script src="tests/multi-sequence-conversion.test.js"></script>
+    <script src="tests/header-footer-margins.test.js"></script>
+    <script src="tests/header-extraction-parity.test.js"></script>
+    <script src="tests/page-margins-calculation.test.js"></script>
+    <script src="tests/table-row-background.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -567,6 +578,18 @@
         let fontWeightXML = null;
         let tableOuterInnerBorderXML = null;
         let layoutMasterXML = null;
+        let flowFilteringXML = null;
+        let headerFooterDetectionXML = null;
+        let headerFooterInfoXML = null;
+        let staticContentLayoutXML = null;
+        let headersFootersPopulationXML = null;
+        let multiSequenceXML = null;
+        let multiHeaderXML = null;
+        let multiFooterXML = null;
+        let headerFooterMarginsXML = null;
+        let headerExtractionParityXML = null;
+        let pageMarginsCalculationXML = null;
+        let tableRowBackgroundXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -627,6 +650,18 @@
                 fontWeightXML = await loadTestFile('data/font_weight_override.xslt');
                 tableOuterInnerBorderXML = await loadTestFile('data/table_outer_inner_border.xslt');
                 layoutMasterXML = await loadTestFile('data/layout_master_set.xslt');
+                flowFilteringXML = await loadTestFile('data/flow_filtering.xslt');
+                headerFooterDetectionXML = await loadTestFile('data/header_footer_detection.xslt');
+                headerFooterInfoXML = await loadTestFile('data/header_footer_info.xslt');
+                staticContentLayoutXML = await loadTestFile('data/static_content_layout.xslt');
+                headersFootersPopulationXML = await loadTestFile('data/headers_footers_population.xslt');
+                multiSequenceXML = await loadTestFile('data/multi_sequence.xslt');
+                multiHeaderXML = await loadTestFile('data/multi_header.xslt');
+                multiFooterXML = await loadTestFile('data/multi_footer.xslt');
+                headerFooterMarginsXML = await loadTestFile('data/header_footer_margins.xslt');
+                headerExtractionParityXML = await loadTestFile('data/header_extraction_parity.xslt');
+                pageMarginsCalculationXML = await loadTestFile('data/page_margins_calculation.xslt');
+                tableRowBackgroundXML = await loadTestFile('data/table_row_background.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -680,14 +715,31 @@
                 { registerFn: registerNestedTableTests, xml: nestedTableXML, name: 'nested_table.xslt' },
                 { registerFn: registerFontWeightOverrideTests, xml: fontWeightXML, name: 'font_weight_override.xslt' },
                 { registerFn: registerTableOuterInnerBorderTests, xml: tableOuterInnerBorderXML, name: 'table_outer_inner_border.xslt' },
-                { registerFn: registerDocStructureParserTests, xml: layoutMasterXML, name: 'layout_master_set.xslt' }
+                { registerFn: registerDocStructureParserTests, xml: layoutMasterXML, name: 'layout_master_set.xslt' },
+                { registerFn: registerFlowFilteringTests, xml: flowFilteringXML, name: 'flow_filtering.xslt' },
+                { registerFn: registerHeaderFooterDetectionTests, xml: headerFooterDetectionXML, name: 'header_footer_detection.xslt' },
+                { registerFn: registerHeaderFooterInfoTests, xml: headerFooterInfoXML, name: 'header_footer_info.xslt' },
+                { registerFn: registerStaticContentLayoutTests, xml: staticContentLayoutXML, name: 'static_content_layout.xslt' },
+                { registerFn: registerHeadersFootersPopulationTests, xml: headersFootersPopulationXML, name: 'headers_footers_population.xslt' },
+                { registerFn: registerMultiSequenceConversionTests, xml: multiSequenceXML, name: 'multi_sequence.xslt' },
+                { registerFn: registerHeaderFooterMarginsTests, xml: headerFooterMarginsXML, name: 'header_footer_margins.xslt' },
+                { registerFn: registerHeaderExtractionParityTests, xml: headerExtractionParityXML, name: 'header_extraction_parity.xslt' },
+                { registerFn: registerPageMarginsCalculationTests, xml: pageMarginsCalculationXML, name: 'page_margins_calculation.xslt' },
+                { registerFn: registerTableRowBackgroundTests, xml: tableRowBackgroundXML, name: 'table_row_background.xslt' }
             ];
             
             // Register each test suite and map to its data file
             testSuites.forEach(suite => {
                 if (typeof suite.registerFn === 'function') {
                     const startIndex = testIndex;
+                    
+                    // Special handling for multi-sequence tests that need extra XML files
+                    if (suite.registerFn === registerMultiSequenceConversionTests) {
+                        suite.registerFn(testRunner, converter, suite.xml, assert, multiHeaderXML, multiFooterXML);
+                    } else {
                     suite.registerFn(testRunner, converter, suite.xml, assert);
+                    }
+                    
                     const endIndex = testRunner.tests.length - 1;
                     
                     // Map all tests in this suite to their XML data file

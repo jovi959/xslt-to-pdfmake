@@ -1,5 +1,19 @@
 # XSLT to PDFMake Converter - Cursor Rules
 
+## ⚠️ CRITICAL RULE: Documentation Files
+
+**NEVER create .md (Markdown) files unless explicitly requested by the user.**
+
+This includes:
+- ❌ README files
+- ❌ Feature documentation
+- ❌ Implementation summaries
+- ❌ Any other .md files
+
+Only create documentation files when the user explicitly asks for them.
+
+---
+
 ## ⚠️ Quick Checklist for New Tag Converters
 
 When implementing ANY new XSL-FO element converter:

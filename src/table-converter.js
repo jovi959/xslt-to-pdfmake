@@ -93,7 +93,7 @@ function convertProportionalWidths(widths, tableWidth) {
         }
     }
     
-    // Convert each proportion to percentage of page
+    // Convert each proportion to percentage of the table width
     return proportions.map(p => {
         const columnPercent = (p / total) * tableWidthPercent;
         return `${columnPercent}%`;
