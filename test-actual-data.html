@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Actual Data</title>
+    <script src="../lib/pdfmake.min.js"></script>
+    <script src="../src/whitespace-utils.js"></script>
+    <script src="../src/recursive-traversal.js"></script>
+    <script src="../src/keep-properties.js"></script>
+    <script src="../src/inline-converter.js"></script>
+    <script src="../src/block-converter.js"></script>
+    <script src="../src/table-converter.js"></script>
+    <script src="../src/list-converter.js"></script>
+    <script src="../src/preprocessor.js"></script>
+    <script src="../src/block-inheritance-config.js"></script>
+    <script src="../src/table-inheritance-config.js"></script>
+    <script src="../src/doc-structure-parser.js"></script>
+    <script src="../src/default-styles-applier.js"></script>
+    <script src="../src/xslt-to-pdfmake.js"></script>
+</head>
+<body>
+    <h1>Test Actual Data</h1>
+    <pre id="output"></pre>
+    <script>
+        fetch('test/data/default_styles.xslt')
+            .then(r => r.text())
+            .then(xml => {
+                const converter = new XSLToPDFMakeConverter();
+                const result = converter.convertToPDFMake(xml);
+                
+                const output = document.getElementById('output');
+                output.textContent = 'First 3 content items:\n\n';
+                
+                for (let i = 0; i < Math.min(3, result.content.length); i++) {
+                    output.textContent += `Item ${i}:\n`;
+                    output.textContent += `Type: ${typeof result.content[i]}\n`;
+                    output.textContent += `Value: ${JSON.stringify(result.content[i], null, 2)}\n\n`;
+                }
+            });
+    </script>
+</body>
+</html>

@@ -517,6 +517,17 @@ class XSLToPDFMakeConverter {
             pdfMakeDefinition.pageMargins = primaryMaster.margins;
         }
 
+        // Apply default styles if explicitly enabled
+        if (options.applyDefaultStyles) {
+            const defaultStylesApplier = typeof window !== 'undefined'
+                ? window.DefaultStylesApplier
+                : require('./default-styles-applier.js');
+            
+            if (defaultStylesApplier && defaultStylesApplier.applyDefaultStyles) {
+                defaultStylesApplier.applyDefaultStyles(pdfMakeDefinition, options.defaultStyles);
+            }
+        }
+
         return pdfMakeDefinition;
     }
 
@@ -622,7 +633,7 @@ class XSLToPDFMakeConverter {
      * @param {string} xslfoXml - XSL-FO XML string
      * @returns {Promise<Uint8Array>} Merged PDF bytes
      */
-    async convertXSLFOToPDF(xslfoXml) {
+    async convertXSLFOToPDF(xslfoXml, options = {}) {
         // Step 1: Get preprocessed structure
         const parseDocumentStructure = typeof window !== 'undefined' && window.DocStructureParser
             ? window.DocStructureParser.parseDocumentStructure
@@ -633,7 +644,7 @@ class XSLToPDFMakeConverter {
         
         // Fallback if no sequences
         if (pageSequenceKeys.length === 0) {
-            return this.convertToPDFMake(xslfoXml);
+            return this.convertToPDFMake(xslfoXml, options);
         }
         
         // Step 2: Build document definitions for each sequence
@@ -648,7 +659,7 @@ class XSLToPDFMakeConverter {
             }
             
             const bodyFlowName = pageMaster.body.name;
-            const fullDef = this.convertToPDFMake(xslfoXml, { flowName: bodyFlowName });
+            const fullDef = this.convertToPDFMake(xslfoXml, { ...options, flowName: bodyFlowName });
             const content = fullDef.content;
             
             const sequenceHeaders = docStructure.headers.filter(h => 
@@ -737,6 +748,17 @@ class XSLToPDFMakeConverter {
                     }
                     return '';
                 };
+            }
+            
+            // Apply default styles if explicitly enabled
+            if (options.applyDefaultStyles) {
+                const defaultStylesApplier = typeof window !== 'undefined'
+                    ? window.DefaultStylesApplier
+                    : require('./default-styles-applier.js');
+                
+                if (defaultStylesApplier && defaultStylesApplier.applyDefaultStyles) {
+                    defaultStylesApplier.applyDefaultStyles(docDef, options.defaultStyles);
+                }
             }
             
             docDefs.push(docDef);

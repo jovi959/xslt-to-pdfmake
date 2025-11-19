@@ -481,6 +481,7 @@
     <script src="../src/block-inheritance-config.js"></script>
     <script src="../src/table-inheritance-config.js"></script>
     <script src="../src/doc-structure-parser.js"></script>
+    <script src="../src/default-styles-applier.js"></script>
     <script src="../src/xslt-to-pdfmake.js"></script>
     <script src="../src/doc-definition-formatter.js"></script>
     
@@ -532,6 +533,7 @@
     <script src="tests/header-extraction-parity.test.js"></script>
     <script src="tests/page-margins-calculation.test.js"></script>
     <script src="tests/table-row-background.test.js"></script>
+    <script src="tests/default-styles.test.js"></script>
     
     <!-- Load test loader -->
     <script src="test-definitions.js"></script>
@@ -590,6 +592,7 @@
         let headerExtractionParityXML = null;
         let pageMarginsCalculationXML = null;
         let tableRowBackgroundXML = null;
+        let defaultStylesXML = null;
         let testDataLoaded = false;
         let testDataMapping = {}; // Maps test index to XML data
 
@@ -662,6 +665,7 @@
                 headerExtractionParityXML = await loadTestFile('data/header_extraction_parity.xslt');
                 pageMarginsCalculationXML = await loadTestFile('data/page_margins_calculation.xslt');
                 tableRowBackgroundXML = await loadTestFile('data/table_row_background.xslt');
+                defaultStylesXML = await loadTestFile('data/default_styles.xslt');
                 testDataLoaded = true;
                 console.log('✅ Test data loaded');
             } catch (error) {
@@ -725,7 +729,8 @@
                 { registerFn: registerHeaderFooterMarginsTests, xml: headerFooterMarginsXML, name: 'header_footer_margins.xslt' },
                 { registerFn: registerHeaderExtractionParityTests, xml: headerExtractionParityXML, name: 'header_extraction_parity.xslt' },
                 { registerFn: registerPageMarginsCalculationTests, xml: pageMarginsCalculationXML, name: 'page_margins_calculation.xslt' },
-                { registerFn: registerTableRowBackgroundTests, xml: tableRowBackgroundXML, name: 'table_row_background.xslt' }
+                { registerFn: registerTableRowBackgroundTests, xml: tableRowBackgroundXML, name: 'table_row_background.xslt' },
+                { registerFn: registerDefaultStylesTests, xml: defaultStylesXML, name: 'default_styles.xslt' }
             ];
             
             // Register each test suite and map to its data file

@@ -985,6 +985,7 @@ async function main() {
     const { registerStaticContentLayoutTests } = require('./tests/static-content-layout.test.js');
     const { registerHeadersFootersPopulationTests } = require('./tests/headers-footers-population.test.js');
     const { registerTableRowBackgroundTests } = require('./tests/table-row-background.test.js');
+    const { registerDefaultStylesTests } = require('./tests/default-styles.test.js');
     
     // Load integrated conversion test data
     const integratedConversionXML = fs.readFileSync(
@@ -1098,6 +1099,17 @@ async function main() {
         'utf-8'
     );
     
+    // Load default styles test data
+    const defaultStylesXML = fs.readFileSync(
+        path.join(__dirname, 'data', 'default_styles.xslt'),
+        'utf-8'
+    );
+    
+    // Load default-styles-applier module for tests
+    const DefaultStylesApplier = require('../src/default-styles-applier.js');
+    global.DefaultStylesApplier = DefaultStylesApplier;
+    global.window.DefaultStylesApplier = DefaultStylesApplier;
+    
     // Register all tests
     registerPageStructureTests(testRunner, converter, emptyPageXML, assert);
     registerUnitConversionTests(testRunner, converter, emptyPageXML, assert);
@@ -1203,6 +1215,9 @@ async function main() {
     );
     const { registerPageMarginsCalculationTests } = require('./tests/page-margins-calculation.test.js');
     registerPageMarginsCalculationTests(testRunner, converter, pageMarginsCalculationXML, assert);
+    
+    // Register default styles tests
+    registerDefaultStylesTests(testRunner, converter, defaultStylesXML, assert);
 
     // Run all tests
     await testRunner.runTests();

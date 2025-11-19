@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Nested Blocks</title>
+    <script src="../lib/pdfmake.min.js"></script>
+    <script src="../src/whitespace-utils.js"></script>
+    <script src="../src/recursive-traversal.js"></script>
+    <script src="../src/keep-properties.js"></script>
+    <script src="../src/inline-converter.js"></script>
+    <script src="../src/block-converter.js"></script>
+    <script src="../src/table-converter.js"></script>
+    <script src="../src/list-converter.js"></script>
+    <script src="../src/preprocessor.js"></script>
+    <script src="../src/block-inheritance-config.js"></script>
+    <script src="../src/table-inheritance-config.js"></script>
+    <script src="../src/doc-structure-parser.js"></script>
+    <script src="../src/default-styles-applier.js"></script>
+    <script src="../src/xslt-to-pdfmake.js"></script>
+</head>
+<body>
+    <h1>Test Nested Blocks</h1>
+    <pre id="output"></pre>
+    <script>
+        fetch('test/data/default_styles.xslt')
+            .then(r => r.text())
+            .then(xml => {
+                const converter = new XSLToPDFMakeConverter();
+                const result = converter.convertToPDFMake(xml);
+                
+                const output = document.getElementById('output');
+                output.textContent = 'Finding parent block with nested content:\n\n';
+                
+                const parentBlock = result.content.find(item => 
+                    item.text && Array.isArray(item.text) && 
+                    item.text.some(t => (typeof t === 'string' && t.includes('Parent without styles')) ||
+                                       (typeof t === 'object' && t.text && t.text.includes('Parent without styles')))
+                );
+                
+                if (parentBlock) {
+                    output.textContent += 'Found parent block:\n';
+                    output.textContent += JSON.stringify(parentBlock, null, 2);
+                } else {
+                    output.textContent += 'Parent block not found\n\n';
+                    output.textContent += 'All content items:\n';
+                    result.content.forEach((item, i) => {
+                        output.textContent += `\nItem ${i}:\n${JSON.stringify(item, null, 2)}\n`;
+                    });
+                }
+            });
+    </script>
+</body>
+</html>
